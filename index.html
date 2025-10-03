@@ -160,11 +160,12 @@
         <!-- 詳細資料表格 -->
         <div class="bg-white rounded-lg shadow-md p-4 mt-6">
             <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-semibold">
+                <button id="toggle-table" class="flex items-center text-xl font-semibold hover:text-blue-600 transition-colors cursor-pointer">
                     <i class="fas fa-table text-gray-600 mr-2"></i>
                     設施詳細資料
-                </h2>
-                <div class="flex items-center gap-2">
+                    <i id="toggle-icon" class="fas fa-chevron-down ml-2 text-gray-500 transition-transform duration-300"></i>
+                </button>
+                <div id="table-controls" class="flex items-center gap-2 hidden">
                     <label for="table-filter" class="text-sm font-medium text-gray-700">
                         <i class="fas fa-filter mr-1"></i>
                         篩選類別:
@@ -179,32 +180,34 @@
                     </select>
                 </div>
             </div>
-            <div class="overflow-x-auto">
-                <table class="min-w-full table-auto">
-                    <thead>
-                        <tr class="bg-gray-50">
-                            <th class="px-4 py-2 text-left">
-                                <i class="fas fa-building mr-1 text-gray-600"></i>
-                                名稱
-                            </th>
-                            <th class="px-4 py-2 text-left">
-                                <i class="fas fa-tags mr-1 text-gray-600"></i>
-                                類別
-                            </th>
-                            <th class="px-4 py-2 text-left">
-                                <i class="fas fa-map-marker-alt mr-1 text-gray-600"></i>
-                                地址
-                            </th>
-                            <th class="px-4 py-2 text-left">
-                                <i class="fas fa-info-circle mr-1 text-gray-600"></i>
-                                備註
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody id="facilities-table">
-                        <!-- 動態生成的表格內容 -->
-                    </tbody>
-                </table>
+            <div id="table-content" class="hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full table-auto">
+                        <thead>
+                            <tr class="bg-gray-50">
+                                <th class="px-4 py-2 text-left">
+                                    <i class="fas fa-building mr-1 text-gray-600"></i>
+                                    名稱
+                                </th>
+                                <th class="px-4 py-2 text-left">
+                                    <i class="fas fa-tags mr-1 text-gray-600"></i>
+                                    類別
+                                </th>
+                                <th class="px-4 py-2 text-left">
+                                    <i class="fas fa-map-marker-alt mr-1 text-gray-600"></i>
+                                    地址
+                                </th>
+                                <th class="px-4 py-2 text-left">
+                                    <i class="fas fa-info-circle mr-1 text-gray-600"></i>
+                                    備註
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="facilities-table">
+                            <!-- 動態生成的表格內容 -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>

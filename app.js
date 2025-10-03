@@ -32,24 +32,25 @@ const facilityTypes = {
 
 // 初始化地圖
 function initMap() {
-    // 光復鄉的大概中心位置
-    map = L.map('map').setView([23.67, 121.43], 13);
+    // 光復鄉的中心位置
+    const guangfuCenter = [23.67, 121.43];
+    map = L.map('map').setView(guangfuCenter, 14);
     
-    // 花蓮縣的地理邊界 (大概範圍)
-    const hualienBounds = [
-        [22.7, 120.8], // 西南角
-        [24.5, 122.0]  // 東北角
+    // 光復鄉的地理邊界 (更精確的範圍)
+    const guangfuBounds = [
+        [23.63, 121.40], // 西南角
+        [23.71, 121.47]  // 東北角
     ];
     
     // 設置地圖的最大邊界
-    map.setMaxBounds(hualienBounds);
-    map.options.minZoom = 9;  // 最小縮放級別
+    map.setMaxBounds(guangfuBounds);
+    map.options.minZoom = 12;  // 提高最小縮放級別，聚焦光復鄉
     map.options.maxZoom = 18; // 最大縮放級別
     
     // 添加OpenStreetMap圖層
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors | 限制範圍: 花蓮縣',
-        bounds: hualienBounds
+        attribution: '© OpenStreetMap contributors | 限制範圍: 花蓮縣光復鄉',
+        bounds: guangfuBounds
     }).addTo(map);
     
     // 初始化標記圖層組
@@ -59,10 +60,18 @@ function initMap() {
     
     // 當地圖超出邊界時，自動回到光復鄉中心
     map.on('drag', function() {
-        map.panInsideBounds(hualienBounds, { animate: false });
+        map.panInsideBounds(guangfuBounds, { animate: false });
     });
     
-    console.log('地圖初始化完成 - 已限制在花蓮縣範圍內');
+    // 當地圖縮放超出範圍時，自動調整到適當縮放級別
+    map.on('zoomend', function() {
+        const currentZoom = map.getZoom();
+        if (currentZoom < 12) {
+            map.setZoom(12);
+        }
+    });
+    
+    console.log('地圖初始化完成 - 已限制在光復鄉範圍內');
 }
 
 // 載入並解析KML數據
@@ -140,48 +149,19 @@ function loadFallbackData() {
     return facilitiesData;
 }
 
-// 顯示載入訊息
+// 顯示載入訊息 (使用toast系統)
 function showLoadingMessage(message) {
-    const loadingDiv = document.createElement('div');
-    loadingDiv.id = 'loading-message';
-    loadingDiv.className = 'fixed top-4 right-4 bg-blue-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
-    loadingDiv.innerHTML = `
-        <div class="flex items-center">
-            <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-            ${message}
-        </div>
-    `;
-    document.body.appendChild(loadingDiv);
+    showToast(message, 'info', 0); // 持續顯示直到手動移除
 }
 
-// 隱藏載入訊息
+// 隱藏載入訊息 (使用toast系統)
 function hideLoadingMessage() {
-    const loadingDiv = document.getElementById('loading-message');
-    if (loadingDiv) {
-        loadingDiv.remove();
-    }
+    clearAllToasts(); // 清除所有toast
 }
 
-// 顯示錯誤訊息
+// 顯示錯誤訊息 (使用toast系統)
 function showErrorMessage(message) {
-    const errorDiv = document.createElement('div');
-    errorDiv.className = 'fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
-    errorDiv.innerHTML = `
-        <div class="flex items-center justify-between">
-            <span>${message}</span>
-            <button onclick="this.parentElement.parentElement.remove()" class="ml-2 text-white hover:text-gray-200">
-                ✕
-            </button>
-        </div>
-    `;
-    document.body.appendChild(errorDiv);
-    
-    // 5秒後自動移除
-    setTimeout(() => {
-        if (errorDiv.parentNode) {
-            errorDiv.remove();
-        }
-    }, 5000);
+    showToast(message, 'error', 5000);
 }
 
 // 生成Google Maps URL
@@ -208,6 +188,9 @@ function searchFacilities(query) {
         return;
     }
     
+    // 顯示搜索中的toast
+    showToast('正在搜索設施...', 'info', 1000);
+    
     const searchTerm = query.toLowerCase().trim();
     searchResults = facilitiesData.filter(facility => {
         return facility.name.toLowerCase().includes(searchTerm) ||
@@ -219,6 +202,13 @@ function searchFacilities(query) {
     displaySearchResults();
     highlightSearchResults();
     isSearchActive = true;
+    
+    // 顯示搜索結果toast
+    if (searchResults.length > 0) {
+        showToast(`找到 ${searchResults.length} 個相關設施`, 'success', 2000);
+    } else {
+        showToast('未找到相關設施，請嘗試其他關鍵字', 'warning', 3000);
+    }
 }
 
 // 顯示搜索結果
@@ -300,6 +290,9 @@ function highlightSearchResults() {
 // 聚焦到特定設施
 function focusOnFacility(facility) {
     if (facility.lat && facility.lng) {
+        // 顯示定位toast
+        showToast(`正在定位到 ${facility.name}`, 'info', 1500);
+        
         map.setView([facility.lat, facility.lng], 16);
         
         // 找到對應的標記並打開彈出窗口
@@ -311,10 +304,14 @@ function focusOnFacility(facility) {
                     if (Math.abs(markerPos.lat - facility.lat) < 0.0001 && 
                         Math.abs(markerPos.lng - facility.lng) < 0.0001) {
                         marker.openPopup();
+                        // 顯示成功定位toast
+                        showToast(`已定位到 ${facility.name}`, 'success', 2000);
                     }
                 });
             }
         }, 500);
+    } else {
+        showToast('無法定位此設施，座標資訊不完整', 'warning', 3000);
     }
 }
 
@@ -325,6 +322,9 @@ function clearSearch() {
     searchResults = [];
     isSearchActive = false;
     
+    // 顯示清除toast
+    showToast('搜索已清除', 'info', 1500);
+    
     // 恢復正常的篩選顯示
     filterFacilities(currentFilter);
 }
@@ -332,12 +332,12 @@ function clearSearch() {
 // 用戶定位功能
 function locateUser() {
     if (!navigator.geolocation) {
-        showErrorMessage('您的瀏覽器不支援地理定位功能');
+        showToast('您的瀏覽器不支援地理定位功能', 'error', 4000);
         return;
     }
     
     // 顯示定位中提示
-    showLoadingMessage('正在獲取您的位置...');
+    showToast('正在獲取您的位置...', 'info', 0); // 持續顯示直到手動移除
     
     const options = {
         enableHighAccuracy: true,
@@ -347,17 +347,22 @@ function locateUser() {
     
     navigator.geolocation.getCurrentPosition(
         (position) => {
-            hideLoadingMessage();
+            clearAllToasts(); // 清除載入中的toast
             const lat = position.coords.latitude;
             const lng = position.coords.longitude;
             const accuracy = position.coords.accuracy;
             
             console.log(`用戶位置: ${lat}, ${lng} (精度: ${accuracy}米)`);
             
-            // 檢查是否在花蓮縣範圍內
-            if (lat < 22.7 || lat > 24.5 || lng < 120.8 || lng > 122.0) {
-                showErrorMessage('您似乎不在花蓮縣範圍內，將顯示光復鄉中心位置');
-                map.setView([23.67, 121.43], 13);
+            // 檢查是否在光復鄉範圍內
+            if (lat < 23.63 || lat > 23.71 || lng < 121.40 || lng > 121.47) {
+                // 檢查是否至少在花蓮縣範圍內
+                if (lat < 22.7 || lat > 24.5 || lng < 120.8 || lng > 122.0) {
+                    showToast('您似乎不在花蓮縣範圍內，將顯示光復鄉中心位置', 'warning', 4000);
+                } else {
+                    showToast('您似乎不在光復鄉範圍內，但在花蓮縣內，將顯示光復鄉位置', 'info', 4000);
+                }
+                map.setView([23.67, 121.43], 14);
                 return;
             }
             
@@ -426,11 +431,11 @@ function locateUser() {
             // 尋找附近的設施
             findNearbyFacilities(lat, lng);
             
-            showSuccessMessage('定位成功！已顯示您的位置');
+            showToast(`定位成功！精度約 ${Math.round(accuracy)} 米`, 'success', 3000);
         },
         (error) => {
-            hideLoadingMessage();
-            let errorMsg = '無法獲取您的位置: ';
+            clearAllToasts(); // 清除載入中的toast
+            let errorMsg = '定位失敗: ';
             
             switch (error.code) {
                 case error.PERMISSION_DENIED:
@@ -440,13 +445,13 @@ function locateUser() {
                     errorMsg += '位置信息不可用';
                     break;
                 case error.TIMEOUT:
-                    errorMsg += '定位請求超時';
+                    errorMsg += '定位請求超時，請檢查網路連線';
                     break;
                 default:
                     errorMsg += '未知錯誤';
             }
             
-            showErrorMessage(errorMsg);
+            showToast(errorMsg, 'error', 5000);
             console.error('定位錯誤:', error);
         },
         options
@@ -472,8 +477,14 @@ function findNearbyFacilities(userLat, userLng, radiusKm = 5) {
         
         console.log(`找到 ${nearbyFacilities.length} 個附近設施`);
         
-        // 可以在這裡添加顯示附近設施的邏輯
+        // 顯示附近設施toast
+        const closestDistance = calculateDistance(userLat, userLng, nearbyFacilities[0].lat, nearbyFacilities[0].lng);
+        showToast(`找到 ${nearbyFacilities.length} 個附近設施，最近距離 ${closestDistance.toFixed(1)}km`, 'info', 4000);
+        
+        // 顯示附近設施資訊
         showNearbyFacilitiesInfo(nearbyFacilities, userLat, userLng);
+    } else {
+        showToast(`周圍 ${radiusKm}km 內沒有找到設施`, 'warning', 3000);
     }
 }
 
@@ -538,22 +549,99 @@ function focusOnFacilityFromNearby(facilityName) {
 
 // 顯示成功訊息
 function showSuccessMessage(message) {
-    const successDiv = document.createElement('div');
-    successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
-    successDiv.innerHTML = `
-        <div class="flex items-center">
-            <i class="fas fa-check-circle mr-2"></i>
-            ${message}
+    showToast(message, 'success');
+}
+
+// Toast通知系統
+function showToast(message, type = 'info', duration = 3000) {
+    const toastContainer = getToastContainer();
+    
+    const toast = document.createElement('div');
+    const typeConfig = {
+        success: {
+            bgColor: 'bg-green-500',
+            icon: 'fas fa-check-circle',
+            borderColor: 'border-green-600'
+        },
+        error: {
+            bgColor: 'bg-red-500',
+            icon: 'fas fa-exclamation-circle',
+            borderColor: 'border-red-600'
+        },
+        info: {
+            bgColor: 'bg-blue-500',
+            icon: 'fas fa-info-circle',
+            borderColor: 'border-blue-600'
+        },
+        warning: {
+            bgColor: 'bg-yellow-500',
+            icon: 'fas fa-exclamation-triangle',
+            borderColor: 'border-yellow-600'
+        }
+    };
+    
+    const config = typeConfig[type] || typeConfig.info;
+    
+    toast.className = `${config.bgColor} text-white px-4 py-3 rounded-lg shadow-lg mb-2 border-l-4 ${config.borderColor} transform transition-all duration-300 ease-in-out translate-x-full opacity-0`;
+    toast.innerHTML = `
+        <div class="flex items-center justify-between">
+            <div class="flex items-center">
+                <i class="${config.icon} mr-2"></i>
+                <span class="text-sm font-medium">${message}</span>
+            </div>
+            <button onclick="removeToast(this.parentElement.parentElement)" class="ml-3 text-white hover:text-gray-200 focus:outline-none">
+                <i class="fas fa-times text-xs"></i>
+            </button>
         </div>
     `;
-    document.body.appendChild(successDiv);
     
-    // 3秒後自動移除
+    toastContainer.appendChild(toast);
+    
+    // 觸發動畫
     setTimeout(() => {
-        if (successDiv.parentNode) {
-            successDiv.remove();
-        }
-    }, 3000);
+        toast.classList.remove('translate-x-full', 'opacity-0');
+    }, 10);
+    
+    // 自動移除
+    if (duration > 0) {
+        setTimeout(() => {
+            removeToast(toast);
+        }, duration);
+    }
+    
+    return toast;
+}
+
+// 獲取或創建toast容器
+function getToastContainer() {
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        container.className = 'fixed top-4 right-4 z-50 max-w-sm w-full';
+        document.body.appendChild(container);
+    }
+    return container;
+}
+
+// 移除toast
+function removeToast(toast) {
+    if (toast && toast.parentNode) {
+        toast.classList.add('translate-x-full', 'opacity-0');
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.remove();
+            }
+        }, 300);
+    }
+}
+
+// 清除所有toast
+function clearAllToasts() {
+    const container = document.getElementById('toast-container');
+    if (container) {
+        container.innerHTML = '';
+    }
 }
 
 // 創建自定義標記
@@ -716,6 +804,19 @@ function filterFacilities(type) {
     
     // 更新表格
     updateTable(type === 'all' ? 'all' : type);
+    
+    // 顯示篩選toast
+    const typeNames = {
+        'all': '全部設施',
+        '流動廁所': '流動廁所',
+        '沐浴站': '沐浴站',
+        '取水站': '取水站'
+    };
+    
+    const typeName = typeNames[type] || type;
+    const filteredCount = type === 'all' ? facilitiesData.length : facilitiesData.filter(f => f.type === type).length;
+    
+    showToast(`已篩選 ${typeName}，共 ${filteredCount} 個設施`, 'info', 2000);
 }
 
 // 更新篩選按鈕狀態
@@ -808,6 +909,37 @@ function setupEventListeners() {
             clearSearch();
         }
     });
+    
+    // 詳細資料表格收合展開功能
+    document.getElementById('toggle-table').addEventListener('click', () => {
+        toggleTableVisibility();
+    });
+}
+
+// 切換表格顯示/隱藏
+function toggleTableVisibility() {
+    const tableContent = document.getElementById('table-content');
+    const tableControls = document.getElementById('table-controls');
+    const toggleIcon = document.getElementById('toggle-icon');
+    const isHidden = tableContent.classList.contains('hidden');
+    
+    if (isHidden) {
+        // 展開
+        tableContent.classList.remove('hidden');
+        tableControls.classList.remove('hidden');
+        toggleIcon.classList.remove('fa-chevron-down');
+        toggleIcon.classList.add('fa-chevron-up');
+        toggleIcon.style.transform = 'rotate(180deg)';
+        showToast('設施詳細資料已展開', 'info', 1500);
+    } else {
+        // 收合
+        tableContent.classList.add('hidden');
+        tableControls.classList.add('hidden');
+        toggleIcon.classList.remove('fa-chevron-up');
+        toggleIcon.classList.add('fa-chevron-down');
+        toggleIcon.style.transform = 'rotate(0deg)';
+        showToast('設施詳細資料已收合', 'info', 1500);
+    }
 }
 
 // 初始化應用
