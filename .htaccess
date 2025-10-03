@@ -1,0 +1,28 @@
+# 適用於Apache服務器的設置
+
+# 允許所有域名嵌入此頁面
+Header always unset X-Frame-Options
+Header always set X-Frame-Options "ALLOWALL"
+
+# 更現代的CSP設置，允許所有來源嵌入
+Header always set Content-Security-Policy "frame-ancestors *;"
+
+# 允許跨域資源共享
+Header always set Access-Control-Allow-Origin "*"
+Header always set Access-Control-Allow-Methods "GET, POST, OPTIONS"
+Header always set Access-Control-Allow-Headers "*"
+
+# 安全相關headers
+Header always set X-Content-Type-Options "nosniff"
+Header always set X-XSS-Protection "1; mode=block"
+Header always set Referrer-Policy "no-referrer-when-downgrade"
+
+# 緩存設置
+<FilesMatch "\.(html|htm)$">
+    Header set Cache-Control "public, max-age=3600"
+</FilesMatch>
+
+# 壓縮設置
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/css text/javascript application/javascript application/json
+</IfModule>

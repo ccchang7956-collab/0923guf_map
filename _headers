@@ -1,0 +1,21 @@
+# 適用於Netlify的HTTP headers設置
+
+/*
+  # 允許所有域名嵌入此頁面
+  X-Frame-Options: ALLOWALL
+  
+  # 更現代的替代方案，允許所有來源嵌入
+  Content-Security-Policy: frame-ancestors *;
+  
+  # 允許跨域資源共享
+  Access-Control-Allow-Origin: *
+  Access-Control-Allow-Methods: GET, POST, OPTIONS
+  Access-Control-Allow-Headers: *
+  
+  # 安全相關headers
+  X-Content-Type-Options: nosniff
+  X-XSS-Protection: 1; mode=block
+  Referrer-Policy: no-referrer-when-downgrade
+  
+  # 緩存設置
+  Cache-Control: public, max-age=3600

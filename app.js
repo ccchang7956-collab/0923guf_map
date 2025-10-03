@@ -1537,5 +1537,71 @@ async function init() {
     }
 }
 
+// 檢測是否在iframe中
+function isInIframe() {
+    return window.self !== window.top;
+}
+
+// iframe優化設置
+function setupIframeOptimization() {
+    if (isInIframe()) {
+        console.log('檢測到在iframe中運行，啟用優化模式');
+        
+        // 添加iframe標識class
+        document.body.classList.add('iframe-mode');
+        
+        // 阻止某些可能影響父頁面的行為
+        window.addEventListener('beforeunload', function(e) {
+            // 在iframe中時不顯示離開確認
+            e.preventDefault = function() {};
+        });
+        
+        // 添加iframe專用樣式
+        const iframeStyles = document.createElement('style');
+        iframeStyles.textContent = `
+            .iframe-mode {
+                margin: 0;
+                padding: 0;
+                overflow-x: hidden;
+            }
+            
+            .iframe-mode .container {
+                padding: 8px;
+            }
+            
+            /* 在iframe中隱藏某些元素或調整大小 */
+            .iframe-mode h1 {
+                font-size: 1.5rem;
+                margin-bottom: 1rem;
+            }
+            
+            /* 優化地圖在iframe中的顯示 */
+            .iframe-mode #map {
+                min-height: 300px;
+            }
+            
+            /* Toast在iframe中的位置調整 */
+            .iframe-mode #toast-container {
+                top: 8px;
+                right: 8px;
+            }
+        `;
+        document.head.appendChild(iframeStyles);
+        
+        // 向父頁面發送消息（如果需要）
+        try {
+            window.parent.postMessage({
+                type: 'disaster-map-loaded',
+                message: '光復災害地圖已載入完成'
+            }, '*');
+        } catch (e) {
+            // 忽略跨域錯誤
+        }
+    }
+}
+
 // 頁面加載完成後初始化
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', () => {
+    setupIframeOptimization();
+    init();
+});
