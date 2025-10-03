@@ -342,13 +342,19 @@ function locateUser() {
         return;
     }
     
+    // 檢查是否是HTTPS或localhost
+    const isSecureContext = window.isSecureContext || location.protocol === 'https:' || location.hostname === 'localhost';
+    if (!isSecureContext) {
+        showToast('地理定位需要HTTPS連線或localhost環境才能正常運作', 'warning', 6000);
+    }
+    
     // 顯示定位中提示
-    showToast('正在獲取您的位置...', 'info', 0); // 持續顯示直到手動移除
+    showToast('正在獲取您的位置，請允許瀏覽器權限...', 'info', 0); // 持續顯示直到手動移除
     
     const options = {
         enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 300000 // 5分鐘緩存
+        timeout: 15000, // 增加超時時間到15秒
+        maximumAge: 60000 // 減少緩存時間到1分鐘
     };
     
     navigator.geolocation.getCurrentPosition(
@@ -441,23 +447,25 @@ function locateUser() {
         },
         (error) => {
             clearAllToasts(); // 清除載入中的toast
-            let errorMsg = '定位失敗: ';
+            let errorMsg = '';
+            let duration = 8000;
             
             switch (error.code) {
                 case error.PERMISSION_DENIED:
-                    errorMsg += '您拒絕了位置權限請求';
+                    errorMsg = '定位權限被拒絕';
+                    showLocationPermissionHelp();
                     break;
                 case error.POSITION_UNAVAILABLE:
-                    errorMsg += '位置信息不可用';
+                    errorMsg = '無法獲取位置信息，請檢查GPS是否開啟';
                     break;
                 case error.TIMEOUT:
-                    errorMsg += '定位請求超時，請檢查網路連線';
+                    errorMsg = '定位超時，請確認網路連線並再試一次';
                     break;
                 default:
-                    errorMsg += '未知錯誤';
+                    errorMsg = '定位發生未知錯誤，請重新嘗試';
             }
             
-            showToast(errorMsg, 'error', 5000);
+            showToast(errorMsg, 'error', duration);
             console.error('定位錯誤:', error);
         },
         options
@@ -558,6 +566,539 @@ function showSuccessMessage(message) {
     showToast(message, 'success');
 }
 
+// 顯示位置權限幫助
+function showLocationPermissionHelp() {
+    const helpDiv = document.createElement('div');
+    helpDiv.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4';
+    helpDiv.style.zIndex = '10000';
+    helpDiv.innerHTML = `
+        <div class="bg-white rounded-lg p-6 max-w-sm w-full shadow-xl">
+            <div class="flex items-center mb-4">
+                <i class="fas fa-location-arrow text-blue-600 text-2xl mr-3"></i>
+                <h3 class="text-lg font-bold">需要位置權限</h3>
+            </div>
+            
+            <div class="space-y-3 text-sm text-gray-700 mb-6">
+                <p class="font-medium">請按照以下步驟開啟位置權限：</p>
+                
+                <div class="bg-blue-50 p-3 rounded-lg">
+                    <p class="font-medium text-blue-800 mb-2">🖥️ 電腦版瀏覽器：</p>
+                    <ul class="text-blue-700 space-y-1 text-xs">
+                        <li>• 點擊網址列左側的鎖頭圖標</li>
+                        <li>• 將「位置」設定為「允許」</li>
+                        <li>• 重新整理頁面後再試</li>
+                    </ul>
+                </div>
+                
+                <div class="bg-green-50 p-3 rounded-lg">
+                    <p class="font-medium text-green-800 mb-2">📱 手機瀏覽器：</p>
+                    <ul class="text-green-700 space-y-1 text-xs">
+                        <li>• 確認手機GPS已開啟</li>
+                        <li>• 瀏覽器設定 → 網站權限 → 位置</li>
+                        <li>• 允許此網站存取位置</li>
+                        <li>• 重新載入頁面</li>
+                    </ul>
+                </div>
+                
+                <div class="bg-yellow-50 p-3 rounded-lg">
+                    <p class="font-medium text-yellow-800 mb-2">⚠️ 注意事項：</p>
+                    <ul class="text-yellow-700 space-y-1 text-xs">
+                        <li>• 需要HTTPS連線才能使用定位</li>
+                        <li>• 某些瀏覽器可能需要重新載入</li>
+                        <li>• 確保網路連線穩定</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="flex flex-col gap-2">
+                <div class="flex gap-2">
+                    <button onclick="location.reload()" class="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                        <i class="fas fa-refresh mr-1"></i>
+                        重新載入頁面
+                    </button>
+                    <button onclick="this.parentElement.parentElement.parentElement.parentElement.remove()" class="flex-1 bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600 transition-colors text-sm">
+                        <i class="fas fa-times mr-1"></i>
+                        關閉
+                    </button>
+                </div>
+                <button onclick="showManualLocationInputInSameModal(this)" class="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors text-sm">
+                    <i class="fas fa-map-marker-alt mr-1"></i>
+                    手動輸入位置
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(helpDiv);
+    
+    // 點擊背景關閉
+    helpDiv.addEventListener('click', (e) => {
+        if (e.target === helpDiv) {
+            helpDiv.remove();
+        }
+    });
+}
+
+// 在同一個模態框中顯示手動輸入位置界面
+function showManualLocationInputInSameModal(button) {
+    // 找到模態框的內容區域
+    const modalContent = button.closest('.bg-white');
+    
+    // 替換模態框內容
+    modalContent.innerHTML = `
+        <div class="flex items-center mb-4">
+            <i class="fas fa-map-marker-alt text-green-600 text-2xl mr-3"></i>
+            <h3 class="text-lg font-bold">輸入地址定位</h3>
+        </div>
+        
+        <div class="space-y-4 mb-6">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    <i class="fas fa-map-marker-alt mr-1"></i>
+                    地址
+                </label>
+                <input type="text" id="manual-address" placeholder="例如: 花蓮縣光復鄉中山路18號" 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm">
+            </div>
+            
+            <div class="bg-blue-50 p-3 rounded-lg text-xs text-blue-700">
+                <p class="font-medium mb-1">💡 地址輸入提示：</p>
+                <ul class="space-y-1">
+                    <li>• 請輸入完整地址，包含縣市鄉鎮</li>
+                    <li>• 例如：花蓮縣光復鄉中山路18號</li>
+                    <li>• 例如：花蓮縣鳳林鎮中正路一段3號</li>
+                    <li>• 例如：花蓮縣萬榮鄉明利村1鄰</li>
+                    <li>• 如果地址無法找到，會使用光復鄉中心點</li>
+                </ul>
+            </div>
+            
+            <div id="address-status" class="hidden">
+                <div class="bg-yellow-50 p-3 rounded-lg text-xs text-yellow-700">
+                    <p class="font-medium mb-1">⏳ 正在查詢地址...</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="flex flex-col gap-2">
+            <button onclick="setManualLocationFromModal()" class="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors text-sm">
+                <i class="fas fa-check mr-1"></i>
+                確認位置
+            </button>
+            <button onclick="setGuangfuCenterFromModal()" class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                <i class="fas fa-map-pin mr-1"></i>
+                使用光復鄉中心點
+            </button>
+            <div class="flex gap-2">
+                <button onclick="showLocationPermissionHelpContent(this)" class="flex-1 bg-gray-400 text-white py-2 px-4 rounded-lg hover:bg-gray-500 transition-colors text-sm">
+                    <i class="fas fa-arrow-left mr-1"></i>
+                    返回
+                </button>
+                <button onclick="this.closest('.fixed').remove()" class="flex-1 bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600 transition-colors text-sm">
+                    <i class="fas fa-times mr-1"></i>
+                    關閉
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+// 從模態框返回權限幫助內容
+function showLocationPermissionHelpContent(button) {
+    const modalContent = button.closest('.bg-white');
+    
+    modalContent.innerHTML = `
+        <div class="flex items-center mb-4">
+            <i class="fas fa-location-arrow text-blue-600 text-2xl mr-3"></i>
+            <h3 class="text-lg font-bold">需要位置權限</h3>
+        </div>
+        
+        <div class="space-y-3 text-sm text-gray-700 mb-6">
+            <p class="font-medium">請按照以下步驟開啟位置權限：</p>
+            
+            <div class="bg-blue-50 p-3 rounded-lg">
+                <p class="font-medium text-blue-800 mb-2">🖥️ 電腦版瀏覽器：</p>
+                <ul class="text-blue-700 space-y-1 text-xs">
+                    <li>• 點擊網址列左側的鎖頭圖標</li>
+                    <li>• 將「位置」設定為「允許」</li>
+                    <li>• 重新整理頁面後再試</li>
+                </ul>
+            </div>
+            
+            <div class="bg-green-50 p-3 rounded-lg">
+                <p class="font-medium text-green-800 mb-2">📱 手機瀏覽器：</p>
+                <ul class="text-green-700 space-y-1 text-xs">
+                    <li>• 確認手機GPS已開啟</li>
+                    <li>• 瀏覽器設定 → 網站權限 → 位置</li>
+                    <li>• 允許此網站存取位置</li>
+                    <li>• 重新載入頁面</li>
+                </ul>
+            </div>
+            
+            <div class="bg-yellow-50 p-3 rounded-lg">
+                <p class="font-medium text-yellow-800 mb-2">⚠️ 注意事項：</p>
+                <ul class="text-yellow-700 space-y-1 text-xs">
+                    <li>• 需要HTTPS連線才能使用定位</li>
+                    <li>• 某些瀏覽器可能需要重新載入</li>
+                    <li>• 確保網路連線穩定</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="flex flex-col gap-2">
+            <div class="flex gap-2">
+                <button onclick="location.reload()" class="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                    <i class="fas fa-refresh mr-1"></i>
+                    重新載入頁面
+                </button>
+                <button onclick="this.closest('.fixed').remove()" class="flex-1 bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600 transition-colors text-sm">
+                    <i class="fas fa-times mr-1"></i>
+                    關閉
+                </button>
+            </div>
+            <button onclick="showManualLocationInputInSameModal(this)" class="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors text-sm">
+                <i class="fas fa-map-marker-alt mr-1"></i>
+                輸入地址定位
+            </button>
+        </div>
+    `;
+}
+
+// 顯示手動位置輸入對話框
+function showManualLocationInput() {
+    const inputDiv = document.createElement('div');
+    inputDiv.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4';
+    inputDiv.style.zIndex = '10000';
+    inputDiv.innerHTML = `
+        <div class="bg-white rounded-lg p-6 max-w-sm w-full shadow-xl">
+            <div class="flex items-center mb-4">
+                <i class="fas fa-map-marker-alt text-green-600 text-2xl mr-3"></i>
+                <h3 class="text-lg font-bold">手動輸入位置</h3>
+            </div>
+            
+            <div class="space-y-4 mb-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-crosshairs mr-1"></i>
+                        緯度 (Latitude)
+                    </label>
+                    <input type="number" id="manual-lat" step="0.000001" placeholder="例如: 23.67" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-crosshairs mr-1"></i>
+                        經度 (Longitude)
+                    </label>
+                    <input type="number" id="manual-lng" step="0.000001" placeholder="例如: 121.43" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm">
+                </div>
+                
+                <div class="bg-blue-50 p-3 rounded-lg text-xs text-blue-700">
+                    <p class="font-medium mb-1">💡 小提示：</p>
+                    <ul class="space-y-1">
+                        <li>• 可以使用Google Maps查詢座標</li>
+                        <li>• 光復鄉大概範圍：緯度 23.63-23.71，經度 121.40-121.47</li>
+                        <li>• 或直接使用光復鄉中心點 (下方按鈕)</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="flex flex-col gap-2">
+                <button onclick="setManualLocation()" class="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors text-sm">
+                    <i class="fas fa-check mr-1"></i>
+                    確認位置
+                </button>
+                <button onclick="setGuangfuCenter(); this.parentElement.parentElement.parentElement.remove();" class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                    <i class="fas fa-map-pin mr-1"></i>
+                    使用光復鄉中心點
+                </button>
+                <button onclick="this.parentElement.parentElement.parentElement.remove()" class="w-full bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600 transition-colors text-sm">
+                    <i class="fas fa-times mr-1"></i>
+                    取消
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(inputDiv);
+    
+    // 點擊背景關閉
+    inputDiv.addEventListener('click', (e) => {
+        if (e.target === inputDiv) {
+            inputDiv.remove();
+        }
+    });
+}
+
+// 設定手動輸入的位置
+function setManualLocation() {
+    const lat = parseFloat(document.getElementById('manual-lat').value);
+    const lng = parseFloat(document.getElementById('manual-lng').value);
+    
+    if (isNaN(lat) || isNaN(lng)) {
+        showToast('請輸入有效的緯度和經度', 'error', 3000);
+        return;
+    }
+    
+    if (lat < -90 || lat > 90) {
+        showToast('緯度必須在 -90 到 90 之間', 'error', 3000);
+        return;
+    }
+    
+    if (lng < -180 || lng > 180) {
+        showToast('經度必須在 -180 到 180 之間', 'error', 3000);
+        return;
+    }
+    
+    // 關閉對話框
+    document.querySelector('.fixed.inset-0').remove();
+    
+    // 設置手動位置
+    setUserLocation(lat, lng, '手動輸入');
+}
+
+// 設定光復鄉中心點
+function setGuangfuCenter() {
+    setUserLocation(23.67, 121.43, '光復鄉中心');
+}
+
+// 從模態框設定手動輸入的位置
+function setManualLocationFromModal() {
+    const address = document.getElementById('manual-address').value.trim();
+    
+    if (!address) {
+        showToast('請輸入地址', 'error', 3000);
+        return;
+    }
+    
+    // 顯示查詢狀態
+    const statusDiv = document.getElementById('address-status');
+    statusDiv.classList.remove('hidden');
+    statusDiv.innerHTML = `
+        <div class="bg-yellow-50 p-3 rounded-lg text-xs text-yellow-700">
+            <p class="font-medium mb-1">⏳ 正在查詢地址: ${address}</p>
+        </div>
+    `;
+    
+    // 使用地址解析服務
+    geocodeAddress(address)
+        .then(result => {
+            statusDiv.classList.add('hidden');
+            
+            if (result) {
+                // 關閉模態框
+                document.querySelector('.fixed[style*="z-index: 10000"]').remove();
+                
+                // 設置位置
+                setUserLocation(result.lat, result.lng, `地址: ${address}`);
+            } else {
+                statusDiv.classList.remove('hidden');
+                statusDiv.innerHTML = `
+                    <div class="bg-red-50 p-3 rounded-lg text-xs text-red-700">
+                        <p class="font-medium mb-1">❌ 無法找到該地址</p>
+                        <p>將使用光復鄉中心點，您可以重新輸入或點擊下方按鈕</p>
+                    </div>
+                `;
+                
+                // 3秒後使用光復鄉中心點
+                setTimeout(() => {
+                    document.querySelector('.fixed[style*="z-index: 10000"]').remove();
+                    setUserLocation(23.67, 121.43, '光復鄉中心 (地址查詢失敗)');
+                }, 3000);
+            }
+        })
+        .catch(error => {
+            console.error('地址解析錯誤:', error);
+            statusDiv.classList.remove('hidden');
+            statusDiv.innerHTML = `
+                <div class="bg-red-50 p-3 rounded-lg text-xs text-red-700">
+                    <p class="font-medium mb-1">❌ 地址查詢服務異常</p>
+                    <p>將使用光復鄉中心點</p>
+                </div>
+            `;
+            
+            setTimeout(() => {
+                document.querySelector('.fixed[style*="z-index: 10000"]').remove();
+                setUserLocation(23.67, 121.43, '光復鄉中心 (查詢服務異常)');
+            }, 3000);
+        });
+}
+
+// 從模態框設定光復鄉中心點
+function setGuangfuCenterFromModal() {
+    // 關閉模態框
+    document.querySelector('.fixed[style*="z-index: 10000"]').remove();
+    
+    // 設置光復鄉中心
+    setUserLocation(23.67, 121.43, '光復鄉中心');
+}
+
+// 統一的用戶位置設置函數
+function setUserLocation(lat, lng, source) {
+    // 移除舊的用戶位置標記
+    if (userLocationMarker) {
+        map.removeLayer(userLocationMarker);
+    }
+    
+    // 創建用戶位置標記
+    const userIcon = L.divIcon({
+        html: `
+            <div style="
+                background-color: #3b82f6;
+                border: 3px solid white;
+                border-radius: 50%;
+                width: 20px;
+                height: 20px;
+                box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+                animation: pulse 2s infinite;
+            "></div>
+            <style>
+                @keyframes pulse {
+                    0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+                    70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+                    100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+                }
+            </style>
+        `,
+        className: 'user-location-marker',
+        iconSize: [20, 20],
+        iconAnchor: [10, 10]
+    });
+    
+    userLocationMarker = L.marker([lat, lng], { icon: userIcon });
+    userLocationMarker.bindPopup(`
+        <div class="p-2">
+            <h3 class="font-bold text-lg flex items-center">
+                <i class="fas fa-location-arrow text-blue-600 mr-2"></i>
+                您的位置 (${source})
+            </h3>
+            <p class="text-sm text-gray-600 mb-1">
+                <i class="fas fa-map-marker-alt mr-1"></i>
+                緯度: ${lat.toFixed(6)}
+            </p>
+            <p class="text-sm text-gray-600 mb-1">
+                <i class="fas fa-map-marker-alt mr-1"></i>
+                經度: ${lng.toFixed(6)}
+            </p>
+        </div>
+    `);
+    
+    userLocationMarker.addTo(map);
+    
+    // 移動地圖到用戶位置
+    map.setView([lat, lng], 15);
+    
+    // 1秒後自動打開彈出窗口
+    setTimeout(() => {
+        userLocationMarker.openPopup();
+    }, 1000);
+    
+    // 尋找附近的設施
+    findNearbyFacilities(lat, lng);
+    
+    showToast(`位置設定成功！(${source})`, 'success', 3000);
+}
+
+// 地址解析函數
+async function geocodeAddress(address) {
+    try {
+        // 使用OpenStreetMap Nominatim服務進行地址解析
+        const encodedAddress = encodeURIComponent(address);
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodedAddress}&limit=1&countrycodes=tw&addressdetails=1`;
+        
+        console.log('正在查詢地址:', address);
+        
+        const response = await fetch(url, {
+            headers: {
+                'User-Agent': 'DisasterMapApp/1.0'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('地址解析結果:', data);
+        
+        if (data && data.length > 0) {
+            const result = data[0];
+            const lat = parseFloat(result.lat);
+            const lng = parseFloat(result.lon);
+            
+            // 檢查是否在台灣範圍內
+            if (lat < 21.5 || lat > 25.5 || lng < 119.5 || lng > 122.5) {
+                console.warn('地址不在台灣範圍內');
+                return null;
+            }
+            
+            // 檢查是否在目標區域附近 (光復鄉、萬榮鄉、鳳林鎮)
+            if (lat < 23.4 || lat > 23.9 || lng < 121.2 || lng > 121.7) {
+                console.warn('地址不在目標區域附近，但仍然使用');
+            }
+            
+            return {
+                lat: lat,
+                lng: lng,
+                displayName: result.display_name || address,
+                address: result.address || {}
+            };
+        } else {
+            console.warn('找不到該地址');
+            return null;
+        }
+        
+    } catch (error) {
+        console.error('地址解析失敗:', error);
+        
+        // 嘗試使用備用的地址解析方法
+        return await fallbackGeocoding(address);
+    }
+}
+
+// 備用地址解析方法
+async function fallbackGeocoding(address) {
+    try {
+        // 簡單的關鍵字匹配，針對常見地址
+        const addressLower = address.toLowerCase();
+        
+        // 光復鄉常見地點
+        if (addressLower.includes('光復') && addressLower.includes('中山路')) {
+            return { lat: 23.673, lng: 121.427, displayName: '光復鄉中山路區域' };
+        }
+        if (addressLower.includes('光復') && addressLower.includes('林森路')) {
+            return { lat: 23.670, lng: 121.425, displayName: '光復鄉林森路區域' };
+        }
+        if (addressLower.includes('光復') && addressLower.includes('中正路')) {
+            return { lat: 23.668, lng: 121.430, displayName: '光復鄉中正路區域' };
+        }
+        
+        // 鳳林鎮常見地點
+        if (addressLower.includes('鳳林') && addressLower.includes('中正路')) {
+            return { lat: 23.750, lng: 121.450, displayName: '鳳林鎮中正路區域' };
+        }
+        if (addressLower.includes('鳳林') && addressLower.includes('民生路')) {
+            return { lat: 23.748, lng: 121.452, displayName: '鳳林鎮民生路區域' };
+        }
+        
+        // 萬榮鄉常見地點
+        if (addressLower.includes('萬榮') && addressLower.includes('明利')) {
+            return { lat: 23.720, lng: 121.480, displayName: '萬榮鄉明利村區域' };
+        }
+        if (addressLower.includes('萬榮') && addressLower.includes('紅葉')) {
+            return { lat: 23.680, lng: 121.520, displayName: '萬榮鄉紅葉村區域' };
+        }
+        
+        // 如果都不匹配，返回null
+        console.warn('備用地址解析也無法處理:', address);
+        return null;
+        
+    } catch (error) {
+        console.error('備用地址解析失敗:', error);
+        return null;
+    }
+}
+
 // Toast通知系統
 function showToast(message, type = 'info', duration = 3000) {
     const toastContainer = getToastContainer();
@@ -624,7 +1165,8 @@ function getToastContainer() {
     if (!container) {
         container = document.createElement('div');
         container.id = 'toast-container';
-        container.className = 'fixed top-4 right-4 z-50 max-w-sm w-full';
+        container.className = 'fixed top-4 right-4 max-w-sm w-full';
+        container.style.zIndex = '9999';
         document.body.appendChild(container);
     }
     return container;
