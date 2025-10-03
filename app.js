@@ -27,30 +27,36 @@ const facilityTypes = {
         icon: 'fas fa-tint',
         countElement: 'water-count',
         totalElement: 'water-total'
+    },
+    '災區醫療站': {
+        color: '#dc2626',
+        icon: 'fas fa-user-md',
+        countElement: 'medical-count',
+        totalElement: 'medical-total'
     }
 };
 
 // 初始化地圖
 function initMap() {
-    // 光復鄉的中心位置
-    const guangfuCenter = [23.67, 121.43];
-    map = L.map('map').setView(guangfuCenter, 14);
+    // 三鄉鎮的中心位置 (光復鄉中心)
+    const regionCenter = [23.67, 121.43];
+    map = L.map('map').setView(regionCenter, 12);
     
-    // 光復鄉的地理邊界 (更精確的範圍)
-    const guangfuBounds = [
-        [23.63, 121.40], // 西南角
-        [23.71, 121.47]  // 東北角
+    // 光復鄉、萬榮鄉、鳳林鎮的地理邊界
+    const regionBounds = [
+        [23.50, 121.35], // 西南角 (涵蓋鳳林鎮南部)
+        [23.85, 121.55]  // 東北角 (涵蓋萬榮鄉東部)
     ];
     
     // 設置地圖的最大邊界
-    map.setMaxBounds(guangfuBounds);
-    map.options.minZoom = 12;  // 提高最小縮放級別，聚焦光復鄉
-    map.options.maxZoom = 18; // 最大縮放級別
+    map.setMaxBounds(regionBounds);
+    map.options.minZoom = 10;  // 適中的最小縮放級別
+    map.options.maxZoom = 18;  // 最大縮放級別
     
     // 添加OpenStreetMap圖層
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors | 限制範圍: 花蓮縣光復鄉',
-        bounds: guangfuBounds
+        attribution: '© OpenStreetMap contributors | 限制範圍: 光復鄉、萬榮鄉、鳳林鎮',
+        bounds: regionBounds
     }).addTo(map);
     
     // 初始化標記圖層組
@@ -58,20 +64,20 @@ function initMap() {
         markers[type] = L.layerGroup().addTo(map);
     });
     
-    // 當地圖超出邊界時，自動回到光復鄉中心
+    // 當地圖超出邊界時，自動回到範圍內
     map.on('drag', function() {
-        map.panInsideBounds(guangfuBounds, { animate: false });
+        map.panInsideBounds(regionBounds, { animate: false });
     });
     
     // 當地圖縮放超出範圍時，自動調整到適當縮放級別
     map.on('zoomend', function() {
         const currentZoom = map.getZoom();
-        if (currentZoom < 12) {
-            map.setZoom(12);
+        if (currentZoom < 10) {
+            map.setZoom(10);
         }
     });
     
-    console.log('地圖初始化完成 - 已限制在光復鄉範圍內');
+    console.log('地圖初始化完成 - 已限制在光復鄉、萬榮鄉、鳳林鎮範圍內');
 }
 
 // 載入並解析KML數據
@@ -354,15 +360,15 @@ function locateUser() {
             
             console.log(`用戶位置: ${lat}, ${lng} (精度: ${accuracy}米)`);
             
-            // 檢查是否在光復鄉範圍內
-            if (lat < 23.63 || lat > 23.71 || lng < 121.40 || lng > 121.47) {
+            // 檢查是否在光復鄉、萬榮鄉、鳳林鎮範圍內
+            if (lat < 23.50 || lat > 23.85 || lng < 121.35 || lng > 121.55) {
                 // 檢查是否至少在花蓮縣範圍內
                 if (lat < 22.7 || lat > 24.5 || lng < 120.8 || lng > 122.0) {
                     showToast('您似乎不在花蓮縣範圍內，將顯示光復鄉中心位置', 'warning', 4000);
                 } else {
-                    showToast('您似乎不在光復鄉範圍內，但在花蓮縣內，將顯示光復鄉位置', 'info', 4000);
+                    showToast('您不在光復鄉、萬榮鄉、鳳林鎮範圍內，將顯示光復鄉位置', 'info', 4000);
                 }
-                map.setView([23.67, 121.43], 14);
+                map.setView([23.67, 121.43], 12);
                 return;
             }
             
@@ -784,8 +790,8 @@ function filterFacilities(type) {
         document.getElementById('search-results').classList.add('hidden');
     }
     
-    // 更新按鈕狀態
-    updateFilterButtonStates(type);
+    // 更新儀表板卡片狀態
+    updateDashboardCardStates(type);
     
     // 更新下拉選單狀態
     const tableFilter = document.getElementById('table-filter');
@@ -810,7 +816,8 @@ function filterFacilities(type) {
         'all': '全部設施',
         '流動廁所': '流動廁所',
         '沐浴站': '沐浴站',
-        '取水站': '取水站'
+        '取水站': '取水站',
+        '災區醫療站': '災區醫療站'
     };
     
     const typeName = typeNames[type] || type;
@@ -819,29 +826,51 @@ function filterFacilities(type) {
     showToast(`已篩選 ${typeName}，共 ${filteredCount} 個設施`, 'info', 2000);
 }
 
-// 更新篩選按鈕狀態
-function updateFilterButtonStates(type) {
-    // 重置所有按鈕
-    document.querySelectorAll('[id^="btn-"]').forEach(btn => {
-        btn.classList.remove('bg-opacity-80', 'ring-2', 'ring-offset-2');
-    });
-    
-    // 設置活動按鈕
-    const activeBtn = document.getElementById(`btn-${type === 'all' ? 'all' : 
-        type === '流動廁所' ? 'toilets' : 
-        type === '沐浴站' ? 'showers' : 'water'}`);
-    if (activeBtn) {
-        activeBtn.classList.add('bg-opacity-80', 'ring-2', 'ring-offset-2');
+// 切換篩選功能 (儀表板卡片)
+function toggleFilter(type, cardClass) {
+    if (currentFilter === type) {
+        // 如果已經選中，則取消篩選，顯示全部
+        filterFacilities('all');
+    } else {
+        // 否則篩選該類型
+        filterFacilities(type);
     }
 }
 
+// 更新儀表板卡片狀態
+function updateDashboardCardStates(type) {
+    // 重置所有卡片
+    document.querySelectorAll('.dashboard-card').forEach(card => {
+        card.classList.remove('selected', 'toilets', 'showers', 'water');
+    });
+    
+    // 設置選中的卡片
+    if (type !== 'all') {
+        const cardMap = {
+            '流動廁所': { id: 'card-toilets', class: 'toilets' },
+            '沐浴站': { id: 'card-showers', class: 'showers' },
+            '取水站': { id: 'card-water', class: 'water' },
+            '災區醫療站': { id: 'card-medical', class: 'medical' }
+        };
+        
+        const cardInfo = cardMap[type];
+        if (cardInfo) {
+            const card = document.getElementById(cardInfo.id);
+            if (card) {
+                card.classList.add('selected', cardInfo.class);
+            }
+        }
+    }
+}
+
+
 // 事件監聽器
 function setupEventListeners() {
-    // 篩選按鈕
-    document.getElementById('btn-all').addEventListener('click', () => filterFacilities('all'));
-    document.getElementById('btn-toilets').addEventListener('click', () => filterFacilities('流動廁所'));
-    document.getElementById('btn-showers').addEventListener('click', () => filterFacilities('沐浴站'));
-    document.getElementById('btn-water').addEventListener('click', () => filterFacilities('取水站'));
+    // 儀表板卡片點擊事件
+    document.getElementById('card-toilets').addEventListener('click', () => toggleFilter('流動廁所', 'toilets'));
+    document.getElementById('card-showers').addEventListener('click', () => toggleFilter('沐浴站', 'showers'));
+    document.getElementById('card-water').addEventListener('click', () => toggleFilter('取水站', 'water'));
+    document.getElementById('card-medical').addEventListener('click', () => toggleFilter('災區醫療站', 'medical'));
     
     // 搜索功能
     const searchInput = document.getElementById('search-input');
@@ -889,9 +918,6 @@ function setupEventListeners() {
         
         // 同步更新地圖篩選
         filterFacilities(selectedFilter);
-        
-        // 同步更新篩選按鈕狀態
-        updateFilterButtonStates(selectedFilter);
     });
     
     // 地圖控制按鈕
