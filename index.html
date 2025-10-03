@@ -48,6 +48,37 @@
         .dashboard-card.selected:hover {
             transform: scale(1.02) translateY(-2px);
         }
+        
+        /* 手機版優化 */
+        @media (max-width: 768px) {
+            .dashboard-card {
+                padding: 1rem; /* 減少內邊距 */
+            }
+            
+            .dashboard-card h3 {
+                font-size: 1rem; /* 增大標題字體 */
+            }
+            
+            .dashboard-card .text-3xl {
+                font-size: 2.25rem; /* 增大數字字體 */
+            }
+            
+            .dashboard-card .text-xs {
+                font-size: 0.75rem; /* 增大提示文字 */
+            }
+            
+            .dashboard-card .text-sm {
+                font-size: 0.875rem; /* 增大小字體 */
+            }
+            
+            .dashboard-card .rounded-full {
+                padding: 0.75rem; /* 稍微增大圖標容器 */
+            }
+            
+            .dashboard-card .rounded-full i {
+                font-size: 1.75rem; /* 增大圖標 */
+            }
+        }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -59,7 +90,7 @@
         </h1>
         
         <!-- 儀表板 -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <div id="card-toilets" class="dashboard-card bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-all duration-300 cursor-pointer border-2 border-transparent" data-type="流動廁所">
                 <div class="flex items-center justify-between">
                     <div>
