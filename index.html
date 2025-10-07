@@ -94,9 +94,339 @@
                 font-size: 1.75rem; /* 增大圖標 */
             }
         }
+
+        /* 載入動畫樣式 */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(5px);
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        .loading-container {
+            text-align: center;
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            max-width: 300px;
+            width: 90%;
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid #e5e7eb;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem auto;
+        }
+
+        .loading-dots {
+            display: inline-block;
+            position: relative;
+            width: 80px;
+            height: 12px;
+            margin: 1rem 0;
+        }
+
+        .loading-dots div {
+            position: absolute;
+            top: 0;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #3b82f6;
+            animation: loading-dots 1.2s linear infinite;
+        }
+
+        .loading-dots div:nth-child(1) { left: 8px; animation-delay: 0s; }
+        .loading-dots div:nth-child(2) { left: 32px; animation-delay: -0.4s; }
+        .loading-dots div:nth-child(3) { left: 56px; animation-delay: -0.8s; }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes loading-dots {
+            0%, 80%, 100% { transform: scale(0); opacity: 0.5; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #e5e7eb;
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #06b6d4);
+            border-radius: 2px;
+            width: 0%;
+            transition: width 0.3s ease-out;
+        }
+
+        .loading-text {
+            color: #6b7280;
+            font-size: 14px;
+            margin-top: 1rem;
+            font-weight: 500;
+        }
+
+        .loading-fade-out {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* 脈衝動畫 */
+        .pulse-animation {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* 地圖篩選按鈕樣式 */
+        .map-filter-control {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            min-width: 200px;
+            max-width: 220px;
+            transition: all 0.3s ease;
+        }
+
+        .map-filter-control.collapsed {
+            min-width: auto;
+            max-width: 140px;
+        }
+
+        .map-filter-header {
+            font-weight: 600;
+            font-size: 12px;
+            color: #374151;
+            padding: 8px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            user-select: none;
+            background: #f8fafc;
+            margin: -8px -8px 8px -8px;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .map-filter-header:hover {
+            background: #f1f5f9;
+        }
+
+        .map-filter-header .toggle-icon {
+            transition: transform 0.3s ease;
+            font-size: 10px;
+            color: #6b7280;
+        }
+
+        .map-filter-control.collapsed .toggle-icon {
+            transform: rotate(180deg);
+        }
+
+        .map-filter-buttons {
+            padding: 8px;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        .map-filter-control.collapsed .map-filter-buttons {
+            max-height: 0;
+            padding: 0 8px;
+            opacity: 0;
+        }
+
+        .map-filter-button {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            padding: 6px 8px;
+            margin: 2px 0;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .map-filter-button:hover {
+            background: #f9fafb;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .map-filter-button.active {
+            background: #dbeafe;
+            border-color: #3b82f6;
+            color: #1d4ed8;
+        }
+
+        .map-filter-button .icon {
+            margin-right: 6px;
+            min-width: 14px;
+            text-align: center;
+        }
+
+        .map-filter-button .count {
+            margin-left: auto;
+            background: #f3f4f6;
+            color: #6b7280;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .map-filter-button.active .count {
+            background: #3b82f6;
+            color: white;
+        }
+
+        /* 篩選按鈕特定顏色 */
+        .map-filter-button.toilets.active {
+            background: #fed7aa;
+            border-color: #f97316;
+            color: #ea580c;
+        }
+
+        .map-filter-button.toilets.active .count {
+            background: #f97316;
+            color: white;
+        }
+
+        .map-filter-button.showers.active {
+            background: #bbf7d0;
+            border-color: #10b981;
+            color: #059669;
+        }
+
+        .map-filter-button.showers.active .count {
+            background: #10b981;
+            color: white;
+        }
+
+        .map-filter-button.water.active {
+            background: #bae6fd;
+            border-color: #06b6d4;
+            color: #0891b2;
+        }
+
+        .map-filter-button.water.active .count {
+            background: #06b6d4;
+            color: white;
+        }
+
+        .map-filter-button.medical.active {
+            background: #fecaca;
+            border-color: #dc2626;
+            color: #dc2626;
+        }
+
+        .map-filter-button.medical.active .count {
+            background: #dc2626;
+            color: white;
+        }
+
+        /* 手機版地圖篩選器調整 */
+        @media (max-width: 768px) {
+            .map-filter-control {
+                top: 10px;
+                right: 10px;
+                min-width: 140px;
+                max-width: 160px;
+            }
+
+            .map-filter-control.collapsed {
+                min-width: auto;
+                max-width: 120px;
+            }
+
+            .map-filter-header {
+                padding: 6px;
+                font-size: 11px;
+            }
+
+            .map-filter-buttons {
+                padding: 6px;
+            }
+
+            .map-filter-control.collapsed .map-filter-buttons {
+                padding: 0 6px;
+            }
+
+            .map-filter-button {
+                padding: 4px 6px;
+                font-size: 10px;
+                margin: 1px 0;
+            }
+
+            .map-filter-button .icon {
+                margin-right: 3px;
+                min-width: 10px;
+                font-size: 10px;
+            }
+
+            .map-filter-button .count {
+                padding: 1px 4px;
+                font-size: 9px;
+            }
+        }
     </style>
 </head>
 <body class="bg-gray-100">
+    <!-- 載入動畫覆蓋層 -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="loading-container">
+            <div class="loading-spinner"></div>
+            <h3 class="text-xl font-semibold text-gray-800 mb-2">
+                <i class="fas fa-database text-blue-600 mr-2"></i>
+                載入資料
+            </h3>
+            <div class="progress-bar">
+                <div class="progress-bar-fill"></div>
+            </div>
+            <div class="loading-dots">
+                <div></div>
+                <div></div>
+                <div></div>
+            </div>
+            <p id="loading-text" class="loading-text">正在載入設施資料...</p>
+            <p class="text-xs text-gray-500 mt-2">
+                <i class="fas fa-info-circle mr-1"></i>
+                正在從 Google Apps Script API 獲取即時資料
+            </p>
+        </div>
+    </div>
+
     <div class="container mx-auto p-4">
         <!-- 標題 -->
         <h1 class="text-3xl font-bold text-center mb-6 text-gray-800">
@@ -124,7 +454,7 @@
                     </div>
                 </div>
                 <div class="mt-3 text-center">
-                    <span class="text-xs text-gray-400">點擊篩選此類別</span>
+                    <span class="text-xs text-gray-400">點擊篩選 | 再點擊取消</span>
                 </div>
             </div>
             
@@ -146,7 +476,7 @@
                     </div>
                 </div>
                 <div class="mt-3 text-center">
-                    <span class="text-xs text-gray-400">點擊篩選此類別</span>
+                    <span class="text-xs text-gray-400">點擊篩選 | 再點擊取消</span>
                 </div>
             </div>
             
@@ -168,7 +498,7 @@
                     </div>
                 </div>
                 <div class="mt-3 text-center">
-                    <span class="text-xs text-gray-400">點擊篩選此類別</span>
+                    <span class="text-xs text-gray-400">點擊篩選 | 再點擊取消</span>
                 </div>
             </div>
             
@@ -190,7 +520,7 @@
                     </div>
                 </div>
                 <div class="mt-3 text-center">
-                    <span class="text-xs text-gray-400">點擊篩選此類別</span>
+                    <span class="text-xs text-gray-400">點擊篩選 | 再點擊取消</span>
                 </div>
             </div>
         </div>
@@ -217,7 +547,52 @@
                     </button>
                 </div>
             </div>
-            <div id="map" class="w-full h-96 rounded-lg border-2 border-gray-200"></div>
+            <div class="relative">
+                <div id="map" class="w-full h-96 rounded-lg border-2 border-gray-200"></div>
+                
+                <!-- 地圖篩選控制面板 -->
+                <div id="map-filter-control" class="map-filter-control">
+                    <div class="map-filter-header" onclick="toggleMapFilter()">
+                        <div>
+                            <i class="fas fa-filter mr-1"></i>
+                            設施篩選
+                        </div>
+                        <i class="fas fa-chevron-up toggle-icon"></i>
+                    </div>
+                    
+                    <div class="map-filter-buttons">
+                        <button id="map-filter-all" class="map-filter-button active" onclick="filterFacilitiesFromMap('all')">
+                            <span class="icon"><i class="fas fa-th-large"></i></span>
+                            <span>全部設施</span>
+                            <span id="map-count-all" class="count">0</span>
+                        </button>
+                        
+                        <button id="map-filter-toilets" class="map-filter-button toilets" onclick="filterFacilitiesFromMap('流動廁所')">
+                            <span class="icon"><i class="fas fa-restroom"></i></span>
+                            <span>流動廁所</span>
+                            <span id="map-count-toilets" class="count">0</span>
+                        </button>
+                        
+                        <button id="map-filter-showers" class="map-filter-button showers" onclick="filterFacilitiesFromMap('沐浴站')">
+                            <span class="icon"><i class="fas fa-shower"></i></span>
+                            <span>沐浴站</span>
+                            <span id="map-count-showers" class="count">0</span>
+                        </button>
+                        
+                        <button id="map-filter-water" class="map-filter-button water" onclick="filterFacilitiesFromMap('取水站')">
+                            <span class="icon"><i class="fas fa-tint"></i></span>
+                            <span>取水站</span>
+                            <span id="map-count-water" class="count">0</span>
+                        </button>
+                        
+                        <button id="map-filter-medical" class="map-filter-button medical" onclick="filterFacilitiesFromMap('災區醫療站')">
+                            <span class="icon"><i class="fas fa-user-md"></i></span>
+                            <span>醫療站</span>
+                            <span id="map-count-medical" class="count">0</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- 搜索功能 -->
@@ -248,34 +623,48 @@
         </div>
 
         <!-- 詳細資料表格 -->
-        <div class="bg-white rounded-lg shadow-md p-4 mt-6">
-            <div class="flex justify-between items-center mb-4">
-                <button id="toggle-table" class="flex items-center text-xl font-semibold hover:text-blue-600 transition-colors cursor-pointer">
-                    <i class="fas fa-table text-gray-600 mr-2"></i>
-                    設施詳細資料
-                    <i id="toggle-icon" class="fas fa-chevron-down ml-2 text-gray-500 transition-transform duration-300"></i>
-                </button>
-                <div id="table-controls" class="flex items-center gap-2 hidden">
+        <div class="bg-white rounded-lg shadow-md overflow-hidden mt-6">
+            <div class="p-4 bg-gray-600 text-white flex justify-between items-center cursor-pointer" onclick="toggleTable()">
+                <div class="flex items-center">
+                    <i class="fas fa-table mr-2"></i>
+                    <h2 class="text-xl font-semibold">設施詳細資料</h2>
+                    <span class="ml-2 text-sm text-gray-300">(點擊展開/收合)</span>
+                </div>
+                <div class="flex items-center">
+                    <span id="table-status" class="text-sm mr-2">已收合</span>
+                    <i id="toggle-icon" class="fas fa-chevron-down transform transition-transform duration-300"></i>
+                </div>
+            </div>
+            
+            <div id="table-controls" class="p-3 bg-gray-50 border-b hidden">
+                <div class="flex items-center gap-4">
                     <label for="table-filter" class="text-sm font-medium text-gray-700">
                         <i class="fas fa-filter mr-1"></i>
                         篩選類別:
                     </label>
-                    <select id="table-filter" class="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="all">
-                            <i class="fas fa-globe"></i> 全部類別
-                        </option>
+                    <select id="table-filter" class="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="all">🌐 全部類別</option>
                         <option value="流動廁所">🚽 流動廁所</option>
                         <option value="沐浴站">🚿 沐浴站</option>
                         <option value="取水站">💧 取水站</option>
                         <option value="災區醫療站">🏥 災區醫療站</option>
                     </select>
+                    <div class="ml-auto text-sm text-gray-600">
+                        <i class="fas fa-list-ol mr-1"></i>
+                        顯示筆數: <span id="table-count">0</span>
+                    </div>
                 </div>
             </div>
+            
             <div id="table-content" class="hidden">
                 <div class="overflow-x-auto">
                     <table class="min-w-full table-auto">
                         <thead>
                             <tr class="bg-gray-50">
+                                <th class="px-4 py-2 text-left w-16">
+                                    <i class="fas fa-hashtag mr-1 text-gray-600"></i>
+                                    編號
+                                </th>
                                 <th class="px-4 py-2 text-left">
                                     <i class="fas fa-building mr-1 text-gray-600"></i>
                                     名稱
@@ -303,7 +692,826 @@
         </div>
     </div>
 
-    <script src="kml-parser.js"></script>
-    <script src="app.js"></script>
+    <script>
+        // API 配置
+        const API_BASE_URL = 'https://script.google.com/macros/s/AKfycbzPXvPiW3L9rgK0DVLrb6I9SXEceJSgxsXNSwyAP0hNO5LECOXX9G0YGRs65hr-y6De/exec';
+        
+        // 全局變數
+        let map;
+        let allFacilities = [];
+        let filteredFacilities = [];
+        let currentFilter = 'all';
+        let markersLayer;
+        let userMarker;
+
+        // 設施類型配置
+        const facilityConfig = {
+            '流動廁所': { 
+                color: '#f97316', 
+                icon: 'fas fa-restroom',
+                bgColor: '#fff7ed',
+                borderColor: '#fed7aa'
+            },
+            '沐浴站': { 
+                color: '#10b981', 
+                icon: 'fas fa-shower',
+                bgColor: '#f0fdf4',
+                borderColor: '#bbf7d0'
+            },
+            '自來水公司的取水站': { 
+                color: '#06b6d4', 
+                icon: 'fas fa-tint',
+                bgColor: '#f0f9ff',
+                borderColor: '#bae6fd'
+            },
+            '取水站': { 
+                color: '#06b6d4', 
+                icon: 'fas fa-tint',
+                bgColor: '#f0f9ff',
+                borderColor: '#bae6fd'
+            },
+            '災區醫療站': { 
+                color: '#dc2626', 
+                icon: 'fas fa-user-md',
+                bgColor: '#fef2f2',
+                borderColor: '#fecaca'
+            },
+            '災難醫療站': { 
+                color: '#dc2626', 
+                icon: 'fas fa-user-md',
+                bgColor: '#fef2f2',
+                borderColor: '#fecaca'
+            },
+            '未分類': { 
+                color: '#6b7280', 
+                icon: 'fas fa-map-marker-alt',
+                bgColor: '#f9fafb',
+                borderColor: '#d1d5db'
+            }
+        };
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initMap();
+            setupEventListeners();
+            initMapFilterState(); // 初始化地圖篩選面板狀態
+            initTableState(); // 初始化表格狀態
+            loadFacilities();
+        });
+
+        // API 調用函數
+        async function callAPI(endpoint, params = {}) {
+            try {
+                const url = new URL(API_BASE_URL);
+                url.searchParams.append('path', endpoint);
+                
+                Object.keys(params).forEach(key => {
+                    if (params[key] !== null && params[key] !== undefined) {
+                        url.searchParams.append(key, params[key]);
+                    }
+                });
+
+                console.log('API 請求:', url.toString());
+                
+                const response = await fetch(url.toString());
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error || 'API 請求失敗');
+                }
+                
+                return data;
+            } catch (error) {
+                console.error('API 錯誤:', error);
+                throw error;
+            }
+        }
+
+        // 載入設施資料
+        async function loadFacilities() {
+            try {
+                // 顯示載入動畫
+                showMainLoading(true);
+                updateProgress(0);
+                updateLoadingText('正在連接 API...');
+                
+                // 步驟1: 連接API (0-20%)
+                await new Promise(resolve => setTimeout(resolve, 300));
+                updateProgress(20);
+                updateLoadingText('正在獲取設施資料...');
+                
+                // 步驟2: 獲取資料 (20-60%)
+                const data = await callAPI('facilities', { limit: 100 });
+                updateProgress(60);
+                updateLoadingText('正在解析資料...');
+                
+                // 步驟3: 解析資料 (60-80%)
+                await new Promise(resolve => setTimeout(resolve, 300));
+                allFacilities = data.data || [];
+                filteredFacilities = [...allFacilities];
+                updateProgress(80);
+                
+                console.log(`成功載入 ${allFacilities.length} 個設施`);
+                updateLoadingText('正在初始化地圖...');
+                
+                // 步驟4: 初始化界面 (80-95%)
+                await new Promise(resolve => setTimeout(resolve, 200));
+                updateDashboard();
+                updateProgress(90);
+                
+                updateMap();
+                updateProgress(95);
+                
+                updateTable();
+                updateProgress(100);
+                
+                // 步驟5: 完成 (100%)
+                updateLoadingText('載入完成！');
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // 隱藏載入動畫
+                showMainLoading(false);
+                
+            } catch (error) {
+                console.error('載入設施失敗:', error);
+                updateProgress(0);
+                updateLoadingText('載入失敗，請重試');
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                showMainLoading(false);
+                alert('載入設施資料失敗，請檢查網路連接或稍後再試');
+            }
+        }
+
+        // 主載入動畫控制
+        function showMainLoading(show) {
+            const overlay = document.getElementById('loading-overlay');
+            
+            if (show) {
+                overlay.classList.remove('loading-fade-out');
+                overlay.style.display = 'flex';
+            } else {
+                overlay.classList.add('loading-fade-out');
+                // 延遲隱藏，讓淡出動畫完成
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                }, 300);
+            }
+        }
+
+        // 更新載入文字
+        function updateLoadingText(text) {
+            const loadingText = document.getElementById('loading-text');
+            if (loadingText) {
+                loadingText.textContent = text;
+            }
+        }
+
+        // 更新進度條
+        function updateProgress(percentage) {
+            const progressFill = document.querySelector('.progress-bar-fill');
+            if (progressFill) {
+                progressFill.style.width = percentage + '%';
+            }
+        }
+
+        // 表格載入狀態顯示
+        function showLoading(show) {
+            const loadingHtml = `
+                <div class="flex items-center justify-center py-8">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mr-3"></div>
+                    <span class="text-gray-600">載入中...</span>
+                </div>
+            `;
+            
+            if (show) {
+                document.getElementById('facilities-table').innerHTML = loadingHtml;
+            }
+        }
+
+        // 初始化地圖
+        function initMap() {
+            // 以光復鄉為中心
+            map = L.map('map').setView([23.6577, 121.4269], 12);
+            
+            // 添加 OpenStreetMap 圖層
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+            
+            // 創建標記圖層
+            markersLayer = L.layerGroup().addTo(map);
+        }
+
+        // 更新儀表板
+        function updateDashboard() {
+            // 總是使用全部設施來計算統計（儀表板顯示全部數據）
+            const allStats = calculateStats(allFacilities);
+            
+            // 更新各類型計數（顯示全部設施的統計）
+            document.getElementById('toilet-count').textContent = allStats['流動廁所']?.count || 0;
+            document.getElementById('toilet-total').textContent = allStats['流動廁所']?.total || 0;
+            
+            document.getElementById('shower-count').textContent = allStats['沐浴站']?.count || 0;
+            document.getElementById('shower-total').textContent = allStats['沐浴站']?.total || 0;
+            
+            const allWaterCount = (allStats['取水站']?.count || 0) + (allStats['自來水公司的取水站']?.count || 0);
+            const allWaterTotal = (allStats['取水站']?.total || 0) + (allStats['自來水公司的取水站']?.total || 0);
+            document.getElementById('water-count').textContent = allWaterCount;
+            document.getElementById('water-total').textContent = allWaterTotal;
+            
+            const allMedicalCount = (allStats['災區醫療站']?.count || 0) + (allStats['災難醫療站']?.count || 0);
+            const allMedicalTotal = (allStats['災區醫療站']?.total || 0) + (allStats['災難醫療站']?.total || 0);
+            document.getElementById('medical-count').textContent = allMedicalCount;
+            document.getElementById('medical-total').textContent = allMedicalTotal;
+            
+            // 更新地圖篩選按鈕計數（顯示全部設施的總數）
+            updateMapFilterCounts();
+        }
+
+        // 更新地圖篩選按鈕的計數
+        function updateMapFilterCounts() {
+            // 使用全部設施來計算各類型的總數
+            const allStats = calculateStats(allFacilities);
+            
+            // 計算各類型的總數
+            const totalWaterCount = (allStats['取水站']?.count || 0) + (allStats['自來水公司的取水站']?.count || 0);
+            const totalMedicalCount = (allStats['災區醫療站']?.count || 0) + (allStats['災難醫療站']?.count || 0);
+            
+            // 更新地圖篩選按鈕顯示總數
+            document.getElementById('map-count-all').textContent = allFacilities.length;
+            document.getElementById('map-count-toilets').textContent = allStats['流動廁所']?.count || 0;
+            document.getElementById('map-count-showers').textContent = allStats['沐浴站']?.count || 0;
+            document.getElementById('map-count-water').textContent = totalWaterCount;
+            document.getElementById('map-count-medical').textContent = totalMedicalCount;
+        }
+
+        // 計算統計資料
+        function calculateStats(facilities) {
+            const stats = {};
+            
+            facilities.forEach(facility => {
+                const type = facility.type;
+                if (!stats[type]) {
+                    stats[type] = { count: 0, total: 0 };
+                }
+                
+                stats[type].count++;
+                
+                // 從備註中提取數量
+                const note = facility.note || '';
+                const match = note.match(/(\d+)/);
+                if (match) {
+                    stats[type].total += parseInt(match[1]);
+                } else {
+                    stats[type].total += 1; // 如果沒有數量，默認為1
+                }
+            });
+            
+            return stats;
+        }
+
+        // 更新地圖
+        function updateMap() {
+            // 清除現有標記
+            markersLayer.clearLayers();
+            
+            if (filteredFacilities.length === 0) return;
+            
+            const bounds = [];
+            
+            filteredFacilities.forEach(facility => {
+                const config = facilityConfig[facility.type] || facilityConfig['未分類'];
+                
+                // 創建自定義圖標
+                const customIcon = L.divIcon({
+                    className: 'custom-marker',
+                    html: `<div style="
+                        background-color: ${config.color};
+                        width: 20px;
+                        height: 20px;
+                        border-radius: 50%;
+                        border: 3px solid white;
+                        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                    ">
+                        <i class="${config.icon}" style="color: white; font-size: 10px;"></i>
+                    </div>`,
+                    iconSize: [26, 26],
+                    iconAnchor: [13, 13]
+                });
+                
+                const marker = L.marker([facility.lat, facility.lng], {
+                    icon: customIcon
+                }).bindPopup(`
+                    <div class="p-3 min-w-[200px]">
+                        <h3 class="font-bold text-lg mb-2" style="color: ${config.color};">
+                            <i class="${config.icon} mr-2"></i>
+                            ${facility.name}
+                        </h3>
+                        <div class="space-y-1 text-sm">
+                            <p><strong>類型:</strong> ${facility.type}</p>
+                            <p><strong>地址:</strong> ${facility.address || '未提供'}</p>
+                            ${facility.note ? `<p><strong>備註:</strong> ${facility.note}</p>` : ''}
+                            <p class="text-xs text-gray-500 mt-2">
+                                <i class="fas fa-map-marker-alt mr-1"></i>
+                                ${facility.lat.toFixed(6)}, ${facility.lng.toFixed(6)}
+                            </p>
+                        </div>
+                        <div class="mt-3 pt-2 border-t">
+                            <a href="https://www.google.com/maps/search/?api=1&query=${facility.lat},${facility.lng}" 
+                               target="_blank" 
+                               class="text-blue-600 hover:text-blue-800 text-sm">
+                                <i class="fas fa-external-link-alt mr-1"></i>
+                                在 Google 地圖中開啟
+                            </a>
+                        </div>
+                    </div>
+                `);
+                
+                markersLayer.addLayer(marker);
+                bounds.push([facility.lat, facility.lng]);
+            });
+            
+            // 調整地圖視野以包含所有標記
+            if (bounds.length > 0) {
+                map.fitBounds(bounds, { padding: [20, 20] });
+            }
+        }
+
+        // 更新表格
+        function updateTable() {
+            const tbody = document.getElementById('facilities-table');
+            
+            if (filteredFacilities.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="text-center py-8 text-gray-500">
+                            <i class="fas fa-inbox text-3xl mb-2"></i>
+                            <p>沒有找到符合條件的設施</p>
+                        </td>
+                    </tr>
+                `;
+                
+                // 更新顯示筆數
+                document.getElementById('table-count').textContent = '0';
+                return;
+            }
+            
+            tbody.innerHTML = filteredFacilities.map((facility, index) => {
+                const config = facilityConfig[facility.type] || facilityConfig['未分類'];
+                const serialNumber = index + 1; // 流水編號從1開始
+                
+                return `
+                    <tr class="hover:bg-gray-50 cursor-pointer" onclick="focusOnFacility(${facility.lat}, ${facility.lng})">
+                        <td class="px-4 py-3 text-center">
+                            <span class="inline-flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">
+                                ${serialNumber}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="flex items-center">
+                                <i class="${config.icon} mr-2" style="color: ${config.color};"></i>
+                                <span class="font-medium">${facility.name}</span>
+                            </div>
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full" 
+                                  style="background-color: ${config.bgColor}; color: ${config.color}; border: 1px solid ${config.borderColor};">
+                                ${facility.type}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-sm">
+                            <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(facility.address || facility.lat + ',' + facility.lng)}" 
+                               target="_blank" 
+                               class="text-blue-600 hover:text-blue-800 hover:underline"
+                               onclick="event.stopPropagation();">
+                                ${facility.address || `${facility.lat.toFixed(4)}, ${facility.lng.toFixed(4)}`}
+                            </a>
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-600">
+                            ${facility.note || '-'}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+            
+            // 更新顯示筆數
+            document.getElementById('table-count').textContent = filteredFacilities.length;
+        }
+
+        // 聚焦到特定設施
+        function focusOnFacility(lat, lng) {
+            map.setView([lat, lng], 16);
+        }
+
+        // 篩選設施
+        function filterFacilities(type) {
+            // 檢查是否為取消選擇（點擊已選中的卡片）
+            if (currentFilter === type && type !== 'all') {
+                // 取消選擇，回到全部設施
+                type = 'all';
+            }
+            
+            currentFilter = type;
+            
+            if (type === 'all') {
+                filteredFacilities = [...allFacilities];
+            } else {
+                // 處理取水站的多種類型
+                if (type === '取水站') {
+                    filteredFacilities = allFacilities.filter(f => 
+                        f.type === '取水站' || f.type === '自來水公司的取水站'
+                    );
+                } else if (type === '災區醫療站') {
+                    filteredFacilities = allFacilities.filter(f => 
+                        f.type === '災區醫療站' || f.type === '災難醫療站'
+                    );
+                } else {
+                    filteredFacilities = allFacilities.filter(f => f.type === type);
+                }
+            }
+            
+            updateDashboard();
+            updateMap();
+            updateTable();
+            updateCardSelection(type);
+            updateMapFilterSelection(type); // 同步更新地圖篩選按鈕
+            updateTableFilterSelection(type); // 同步更新表格下拉選單
+        }
+
+        // 地圖篩選功能（從地圖按鈕觸發）
+        function filterFacilitiesFromMap(type) {
+            // 檢查是否為取消選擇（點擊已選中的按鈕）
+            if (currentFilter === type && type !== 'all') {
+                // 取消選擇，回到全部設施
+                type = 'all';
+            }
+            
+            currentFilter = type;
+            
+            if (type === 'all') {
+                filteredFacilities = [...allFacilities];
+            } else {
+                // 處理取水站的多種類型
+                if (type === '取水站') {
+                    filteredFacilities = allFacilities.filter(f => 
+                        f.type === '取水站' || f.type === '自來水公司的取水站'
+                    );
+                } else if (type === '災區醫療站') {
+                    filteredFacilities = allFacilities.filter(f => 
+                        f.type === '災區醫療站' || f.type === '災難醫療站'
+                    );
+                } else {
+                    filteredFacilities = allFacilities.filter(f => f.type === type);
+                }
+            }
+            
+            // 更新界面
+            updateDashboard();
+            updateMap();
+            updateTable();
+            updateCardSelection(type);
+            updateMapFilterSelection(type);
+            updateTableFilterSelection(type); // 同步更新表格下拉選單
+        }
+
+        // 更新地圖篩選按鈕選中狀態
+        function updateMapFilterSelection(selectedType) {
+            // 清除所有地圖篩選按鈕的選中狀態
+            document.querySelectorAll('.map-filter-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // 設置對應按鈕為選中狀態
+            const buttonMap = {
+                'all': 'map-filter-all',
+                '流動廁所': 'map-filter-toilets',
+                '沐浴站': 'map-filter-showers',
+                '取水站': 'map-filter-water',
+                '災區醫療站': 'map-filter-medical'
+            };
+            
+            const buttonId = buttonMap[selectedType];
+            if (buttonId) {
+                document.getElementById(buttonId).classList.add('active');
+            }
+        }
+
+        // 更新卡片選中狀態
+        function updateCardSelection(selectedType) {
+            // 清除所有選中狀態
+            document.querySelectorAll('.dashboard-card').forEach(card => {
+                card.classList.remove('selected', 'toilets', 'showers', 'water', 'medical');
+            });
+            
+            // 添加選中狀態
+            if (selectedType !== 'all') {
+                const cardMap = {
+                    '流動廁所': 'card-toilets',
+                    '沐浴站': 'card-showers', 
+                    '取水站': 'card-water',
+                    '災區醫療站': 'card-medical'
+                };
+                
+                const cardId = cardMap[selectedType];
+                if (cardId) {
+                    const card = document.getElementById(cardId);
+                    card.classList.add('selected');
+                    
+                    // 添加對應的樣式類
+                    if (selectedType === '流動廁所') card.classList.add('toilets');
+                    else if (selectedType === '沐浴站') card.classList.add('showers');
+                    else if (selectedType === '取水站') card.classList.add('water');
+                    else if (selectedType === '災區醫療站') card.classList.add('medical');
+                }
+            }
+        }
+
+        // 搜索功能
+        async function searchFacilities(query) {
+            if (!query.trim()) {
+                document.getElementById('search-results').classList.add('hidden');
+                return;
+            }
+            
+            try {
+                // 顯示搜索載入狀態
+                const resultsDiv = document.getElementById('search-results');
+                const resultsList = document.getElementById('search-results-list');
+                
+                resultsList.innerHTML = `
+                    <div class="flex items-center p-3 text-gray-600">
+                        <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                        正在搜索 "${query}"...
+                    </div>
+                `;
+                resultsDiv.classList.remove('hidden');
+                
+                const data = await callAPI('search', { q: query });
+                const results = data.data || [];
+                
+                displaySearchResults(results, query);
+                
+            } catch (error) {
+                console.error('搜索失敗:', error);
+                displaySearchResults([], query);
+            }
+        }
+
+        // 顯示搜索結果
+        function displaySearchResults(results, query) {
+            const resultsDiv = document.getElementById('search-results');
+            const resultsList = document.getElementById('search-results-list');
+            
+            if (results.length === 0) {
+                resultsList.innerHTML = `<div class="text-gray-500 text-sm">沒有找到包含 "${query}" 的設施</div>`;
+            } else {
+                resultsList.innerHTML = results.map(facility => {
+                    const config = facilityConfig[facility.type] || facilityConfig['未分類'];
+                    return `
+                        <div class="flex items-center p-2 hover:bg-gray-100 rounded cursor-pointer" 
+                             onclick="focusOnSearchResult(${facility.lat}, ${facility.lng}, '${facility.name}')">
+                            <i class="${config.icon} mr-2" style="color: ${config.color};"></i>
+                            <div>
+                                <div class="font-medium">${facility.name}</div>
+                                <div class="text-xs text-gray-500">${facility.type} - ${facility.address || '座標: ' + facility.lat.toFixed(4) + ', ' + facility.lng.toFixed(4)}</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+            
+            resultsDiv.classList.remove('hidden');
+        }
+
+        // 聚焦到搜索結果
+        function focusOnSearchResult(lat, lng, name) {
+            map.setView([lat, lng], 16);
+            
+            // 找到對應的標記並打開彈窗
+            markersLayer.eachLayer(layer => {
+                if (layer.getLatLng().lat === lat && layer.getLatLng().lng === lng) {
+                    layer.openPopup();
+                }
+            });
+            
+            // 隱藏搜索結果
+            document.getElementById('search-results').classList.add('hidden');
+            document.getElementById('search-input').value = '';
+        }
+
+        // 用戶定位
+        function locateUser() {
+            if (!navigator.geolocation) {
+                alert('您的瀏覽器不支持定位功能');
+                return;
+            }
+            
+            // 顯示定位載入動畫
+            showMainLoading(true);
+            updateProgress(0);
+            updateLoadingText('正在獲取您的位置...');
+            
+            navigator.geolocation.getCurrentPosition(
+                async position => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    
+                    updateProgress(40);
+                    updateLoadingText('位置獲取成功，正在載入地圖...');
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                    
+                    // 移除舊的用戶標記
+                    if (userMarker) {
+                        map.removeLayer(userMarker);
+                    }
+                    
+                    updateProgress(60);
+                    
+                    // 添加用戶位置標記
+                    userMarker = L.marker([lat, lng], {
+                        icon: L.divIcon({
+                            className: 'user-location-marker',
+                            html: `<div style="
+                                background-color: #3b82f6;
+                                width: 16px;
+                                height: 16px;
+                                border-radius: 50%;
+                                border: 3px solid white;
+                                box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+                                animation: pulse 2s infinite;
+                            "></div>`,
+                            iconSize: [22, 22],
+                            iconAnchor: [11, 11]
+                        })
+                    }).addTo(map);
+                    
+                    map.setView([lat, lng], 14);
+                    updateProgress(80);
+                    
+                    updateLoadingText('正在搜索附近設施...');
+                    
+                    // 查找附近設施
+                    await findNearbyFacilities(lat, lng);
+                    updateProgress(100);
+                    
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                    showMainLoading(false);
+                },
+                error => {
+                    console.error('定位錯誤:', error);
+                    updateProgress(0);
+                    showMainLoading(false);
+                    
+                    let errorMessage = '定位失敗，請檢查瀏覽器定位權限設定';
+                    if (error.code === 1) {
+                        errorMessage = '定位權限被拒絕，請在瀏覽器設定中允許定位權限';
+                    } else if (error.code === 2) {
+                        errorMessage = '無法獲取位置資訊，請檢查網路連接';
+                    } else if (error.code === 3) {
+                        errorMessage = '定位請求超時，請重試';
+                    }
+                    
+                    alert(errorMessage);
+                }
+            );
+        }
+
+        // 查找附近設施
+        async function findNearbyFacilities(lat, lng, radius = 5) {
+            try {
+                const data = await callAPI('nearby', { lat, lng, radius });
+                const nearbyFacilities = data.data || [];
+                
+                if (nearbyFacilities.length > 0) {
+                    alert(`在您附近 ${radius} 公里內找到 ${nearbyFacilities.length} 個設施`);
+                    
+                    // 更新顯示為附近設施
+                    filteredFacilities = nearbyFacilities;
+                    updateDashboard();
+                    updateMap();
+                    updateTable();
+                    
+                    // 清除卡片選中狀態
+                    updateCardSelection('all');
+                } else {
+                    alert(`在您附近 ${radius} 公里內沒有找到設施`);
+                }
+                
+            } catch (error) {
+                console.error('查找附近設施失敗:', error);
+            }
+        }
+
+        // 設置事件監聽器
+        function setupEventListeners() {
+            // 儀表板卡片點擊
+            document.getElementById('card-toilets').addEventListener('click', () => filterFacilities('流動廁所'));
+            document.getElementById('card-showers').addEventListener('click', () => filterFacilities('沐浴站'));
+            document.getElementById('card-water').addEventListener('click', () => filterFacilities('取水站'));
+            document.getElementById('card-medical').addEventListener('click', () => filterFacilities('災區醫療站'));
+            
+            // 地圖控制按鈕
+            document.getElementById('locate-user').addEventListener('click', locateUser);
+            document.getElementById('zoom-in').addEventListener('click', () => map.zoomIn());
+            document.getElementById('zoom-out').addEventListener('click', () => map.zoomOut());
+            
+            // 搜索功能
+            const searchInput = document.getElementById('search-input');
+            let searchTimeout;
+            
+            searchInput.addEventListener('input', (e) => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    searchFacilities(e.target.value);
+                }, 300);
+            });
+            
+            document.getElementById('clear-search').addEventListener('click', () => {
+                searchInput.value = '';
+                document.getElementById('search-results').classList.add('hidden');
+            });
+            
+            // 表格篩選同步功能
+            document.getElementById('table-filter').addEventListener('change', (e) => {
+                const filterValue = e.target.value;
+                // 不要重複調用filterFacilities，而是直接調用地圖篩選功能
+                filterFacilitiesFromMap(filterValue === 'all' ? 'all' : filterValue);
+            });
+        }
+
+        // 地圖篩選面板展開/收合功能
+        function toggleMapFilter() {
+            const control = document.getElementById('map-filter-control');
+            control.classList.toggle('collapsed');
+            
+            // 儲存展開/收合狀態到 localStorage
+            const isCollapsed = control.classList.contains('collapsed');
+            localStorage.setItem('mapFilterCollapsed', isCollapsed);
+        }
+
+        // 初始化地圖篩選面板狀態
+        function initMapFilterState() {
+            const isCollapsed = localStorage.getItem('mapFilterCollapsed') === 'true';
+            if (isCollapsed) {
+                document.getElementById('map-filter-control').classList.add('collapsed');
+            }
+        }
+
+        // 表格展開/收合功能
+        function toggleTable() {
+            const tableContent = document.getElementById('table-content');
+            const tableControls = document.getElementById('table-controls');
+            const toggleIcon = document.getElementById('toggle-icon');
+            const tableStatus = document.getElementById('table-status');
+            
+            const isHidden = tableContent.classList.contains('hidden');
+            
+            if (isHidden) {
+                // 展開
+                tableContent.classList.remove('hidden');
+                tableControls.classList.remove('hidden');
+                toggleIcon.classList.add('rotate-180');
+                tableStatus.textContent = '已展開';
+            } else {
+                // 收合
+                tableContent.classList.add('hidden');
+                tableControls.classList.add('hidden');
+                toggleIcon.classList.remove('rotate-180');
+                tableStatus.textContent = '已收合';
+            }
+            
+            // 儲存狀態到 localStorage
+            localStorage.setItem('tableExpanded', isHidden);
+        }
+
+        // 初始化表格狀態
+        function initTableState() {
+            const isExpanded = localStorage.getItem('tableExpanded') === 'true';
+            if (isExpanded) {
+                toggleTable(); // 如果之前是展開的，則展開
+            }
+        }
+
+        // 更新表格篩選下拉選單選中狀態
+        function updateTableFilterSelection(selectedType) {
+            const tableFilter = document.getElementById('table-filter');
+            
+            // 設置下拉選單的值
+            if (selectedType === 'all') {
+                tableFilter.value = 'all';
+            } else {
+                tableFilter.value = selectedType;
+            }
+        }
+
+        // 全局函數供 HTML 使用
+        window.focusOnFacility = focusOnFacility;
+        window.focusOnSearchResult = focusOnSearchResult;
+        window.toggleMapFilter = toggleMapFilter;
+        window.toggleTable = toggleTable;
+    </script>
 </body>
 </html>

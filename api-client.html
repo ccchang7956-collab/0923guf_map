@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>光復災區地圖 - RESTful API 客戶端</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        #map { height: 500px; }
+        .pulse-dot {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.7; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .api-endpoint {
+            background: #f8fafc;
+            border-left: 4px solid #3b82f6;
+        }
+        .loading-spinner {
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #3498db;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 2s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <!-- 配置區域 -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <h1 class="text-2xl font-bold text-gray-900">
+                    <i class="fas fa-map-marked-alt text-blue-600 mr-2"></i>
+                    光復災區地圖 API 客戶端
+                </h1>
+                <div class="flex items-center space-x-4">
+                    <label class="text-sm font-medium text-gray-700">API URL:</label>
+                    <input 
+                        type="text" 
+                        id="apiUrl" 
+                        class="px-3 py-1 border border-gray-300 rounded-md text-sm w-96"
+                        placeholder="輸入您的Google Apps Script Web App URL"
+                        value=""
+                    >
+                    <button 
+                        id="testConnection" 
+                        class="px-4 py-1 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700"
+                    >
+                        <i class="fas fa-plug mr-1"></i>測試連接
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 狀態指示器 -->
+    <div id="statusBar" class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 hidden">
+        <div class="flex items-center">
+            <div class="loading-spinner mr-2"></div>
+            <p id="statusMessage">正在載入資料...</p>
+        </div>
+    </div>
+
+    <!-- 主要內容 -->
+    <div class="max-w-7xl mx-auto px-4 py-6">
+        <!-- API 端點說明 -->
+        <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">
+                <i class="fas fa-code text-green-600 mr-2"></i>
+                可用的 API 端點
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="api-endpoint p-4 rounded">
+                    <h3 class="font-semibold text-gray-800">獲取所有設施</h3>
+                    <code class="text-sm text-gray-600">GET /?path=facilities</code>
+                    <p class="text-sm text-gray-600 mt-1">參數: type, search, page, limit</p>
+                </div>
+                <div class="api-endpoint p-4 rounded">
+                    <h3 class="font-semibold text-gray-800">搜索設施</h3>
+                    <code class="text-sm text-gray-600">GET /?path=search&q={query}</code>
+                    <p class="text-sm text-gray-600 mt-1">搜索設施名稱、地址或類型</p>
+                </div>
+                <div class="api-endpoint p-4 rounded">
+                    <h3 class="font-semibold text-gray-800">獲取統計資料</h3>
+                    <code class="text-sm text-gray-600">GET /?path=stats</code>
+                    <p class="text-sm text-gray-600 mt-1">獲取各類型設施統計</p>
+                </div>
+                <div class="api-endpoint p-4 rounded">
+                    <h3 class="font-semibold text-gray-800">附近設施</h3>
+                    <code class="text-sm text-gray-600">GET /?path=nearby&lat={lat}&lng={lng}</code>
+                    <p class="text-sm text-gray-600 mt-1">參數: lat, lng, radius</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 功能區域 -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- 控制面板 -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-xl font-semibold mb-4">
+                    <i class="fas fa-sliders-h text-blue-600 mr-2"></i>
+                    控制面板
+                </h2>
+                
+                <!-- 搜索 -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">搜索設施</label>
+                    <div class="flex">
+                        <input 
+                            type="text" 
+                            id="searchInput" 
+                            class="flex-1 px-3 py-2 border border-gray-300 rounded-l-md text-sm"
+                            placeholder="輸入關鍵字..."
+                        >
+                        <button 
+                            id="searchBtn" 
+                            class="px-4 py-2 bg-blue-600 text-white rounded-r-md hover:bg-blue-700"
+                        >
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 設施類型篩選 -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">設施類型</label>
+                    <select id="typeFilter" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm">
+                        <option value="">所有類型</option>
+                    </select>
+                </div>
+
+                <!-- 位置服務 -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">附近設施</label>
+                    <button 
+                        id="locationBtn" 
+                        class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                    >
+                        <i class="fas fa-location-arrow mr-2"></i>
+                        獲取我的位置
+                    </button>
+                    <div id="locationInfo" class="mt-2 text-sm text-gray-600 hidden"></div>
+                </div>
+
+                <!-- 重新整理 -->
+                <button 
+                    id="refreshBtn" 
+                    class="w-full px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
+                >
+                    <i class="fas fa-sync-alt mr-2"></i>
+                    重新載入資料
+                </button>
+            </div>
+
+            <!-- 統計儀表板 -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-xl font-semibold mb-4">
+                    <i class="fas fa-chart-bar text-purple-600 mr-2"></i>
+                    統計資料
+                </h2>
+                <div id="statsContainer">
+                    <div class="text-center text-gray-500">
+                        <i class="fas fa-spinner fa-spin text-2xl"></i>
+                        <p class="mt-2">載入中...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- API 回應 -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-xl font-semibold mb-4">
+                    <i class="fas fa-code text-orange-600 mr-2"></i>
+                    API 回應
+                </h2>
+                <div class="bg-gray-900 rounded p-3 text-green-400 text-xs font-mono h-64 overflow-y-auto">
+                    <pre id="apiResponse">等待 API 呼叫...</pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- 地圖區域 -->
+        <div class="bg-white rounded-lg shadow-sm p-6 mt-6">
+            <h2 class="text-xl font-semibold mb-4">
+                <i class="fas fa-map text-red-600 mr-2"></i>
+                設施地圖
+            </h2>
+            <div id="map"></div>
+        </div>
+
+        <!-- 設施列表 -->
+        <div class="bg-white rounded-lg shadow-sm p-6 mt-6">
+            <h2 class="text-xl font-semibold mb-4">
+                <i class="fas fa-list text-indigo-600 mr-2"></i>
+                設施列表
+            </h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">名稱</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">類型</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">地址</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">備註</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="facilitiesTable" class="bg-white divide-y divide-gray-200">
+                        <!-- 動態載入 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // 全局變數
+        let map;
+        let markersLayer;
+        let apiBaseUrl = '';
+        let allFacilities = [];
+        let userLocation = null;
+
+        // 設施類型配置
+        const facilityTypes = {
+            '流動廁所': { color: '#f97316', icon: 'fas fa-restroom' },
+            '沐浴站': { color: '#10b981', icon: 'fas fa-shower' },
+            '取水站': { color: '#3b82f6', icon: 'fas fa-tint' },
+            '未分類': { color: '#6b7280', icon: 'fas fa-map-marker-alt' }
+        };
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initMap();
+            setupEventListeners();
+            
+            // 從 localStorage 載入 API URL
+            const savedUrl = localStorage.getItem('apiUrl');
+            if (savedUrl) {
+                document.getElementById('apiUrl').value = savedUrl;
+                apiBaseUrl = savedUrl;
+                loadInitialData();
+            }
+        });
+
+        // 初始化地圖
+        function initMap() {
+            map = L.map('map').setView([23.652, 121.411], 11);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+            
+            markersLayer = L.layerGroup().addTo(map);
+        }
+
+        // 設置事件監聽
+        function setupEventListeners() {
+            // 測試連接
+            document.getElementById('testConnection').addEventListener('click', testApiConnection);
+            
+            // 搜索
+            document.getElementById('searchBtn').addEventListener('click', performSearch);
+            document.getElementById('searchInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') performSearch();
+            });
+            
+            // 類型篩選
+            document.getElementById('typeFilter').addEventListener('change', filterByType);
+            
+            // 位置服務
+            document.getElementById('locationBtn').addEventListener('click', getCurrentLocation);
+            
+            // 重新整理
+            document.getElementById('refreshBtn').addEventListener('click', loadInitialData);
+        }
+
+        // 測試 API 連接
+        async function testApiConnection() {
+            const url = document.getElementById('apiUrl').value.trim();
+            if (!url) {
+                alert('請輸入 API URL');
+                return;
+            }
+
+            showStatus('正在測試連接...', 'info');
+            
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.success !== undefined) {
+                    apiBaseUrl = url;
+                    localStorage.setItem('apiUrl', url);
+                    showStatus('連接成功！', 'success');
+                    updateApiResponse(data);
+                    loadInitialData();
+                } else {
+                    throw new Error('API 回應格式不正確');
+                }
+            } catch (error) {
+                showStatus('連接失敗: ' + error.message, 'error');
+                console.error('API 連接錯誤:', error);
+            }
+        }
+
+        // 載入初始資料
+        async function loadInitialData() {
+            if (!apiBaseUrl) return;
+            
+            await Promise.all([
+                loadFacilities(),
+                loadStats(),
+                loadFacilityTypes()
+            ]);
+        }
+
+        // 載入設施資料
+        async function loadFacilities(params = {}) {
+            if (!apiBaseUrl) return;
+            
+            showStatus('載入設施資料...', 'info');
+            
+            try {
+                const queryParams = new URLSearchParams({
+                    path: 'facilities',
+                    ...params
+                });
+                
+                const response = await fetch(`${apiBaseUrl}?${queryParams}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    allFacilities = data.data;
+                    updateFacilitiesTable(allFacilities);
+                    updateMap(allFacilities);
+                    updateApiResponse(data);
+                    hideStatus();
+                } else {
+                    throw new Error(data.error || '載入失敗');
+                }
+            } catch (error) {
+                showStatus('載入設施資料失敗: ' + error.message, 'error');
+                console.error('載入設施錯誤:', error);
+            }
+        }
+
+        // 載入統計資料
+        async function loadStats() {
+            if (!apiBaseUrl) return;
+            
+            try {
+                const response = await fetch(`${apiBaseUrl}?path=stats`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    updateStatsDisplay(data.data);
+                }
+            } catch (error) {
+                console.error('載入統計錯誤:', error);
+            }
+        }
+
+        // 載入設施類型
+        async function loadFacilityTypes() {
+            if (!apiBaseUrl) return;
+            
+            try {
+                const response = await fetch(`${apiBaseUrl}?path=types`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    updateTypeFilter(data.data);
+                }
+            } catch (error) {
+                console.error('載入類型錯誤:', error);
+            }
+        }
+
+        // 執行搜索
+        async function performSearch() {
+            const query = document.getElementById('searchInput').value.trim();
+            if (!query || !apiBaseUrl) return;
+            
+            showStatus('搜索中...', 'info');
+            
+            try {
+                const response = await fetch(`${apiBaseUrl}?path=search&q=${encodeURIComponent(query)}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    updateFacilitiesTable(data.data);
+                    updateMap(data.data);
+                    updateApiResponse(data);
+                    hideStatus();
+                } else {
+                    throw new Error(data.error || '搜索失敗');
+                }
+            } catch (error) {
+                showStatus('搜索失敗: ' + error.message, 'error');
+                console.error('搜索錯誤:', error);
+            }
+        }
+
+        // 按類型篩選
+        function filterByType() {
+            const selectedType = document.getElementById('typeFilter').value;
+            
+            if (selectedType) {
+                loadFacilities({ type: selectedType });
+            } else {
+                loadFacilities();
+            }
+        }
+
+        // 獲取用戶位置
+        function getCurrentLocation() {
+            if (!navigator.geolocation) {
+                alert('您的瀏覽器不支持定位功能');
+                return;
+            }
+            
+            showStatus('正在獲取位置...', 'info');
+            
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    
+                    userLocation = { lat, lng };
+                    
+                    // 在地圖上顯示用戶位置
+                    if (map.userMarker) {
+                        map.removeLayer(map.userMarker);
+                    }
+                    
+                    map.userMarker = L.marker([lat, lng], {
+                        icon: L.divIcon({
+                            className: 'pulse-dot',
+                            html: '<div style="background: #3b82f6; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white;"></div>',
+                            iconSize: [16, 16]
+                        })
+                    }).addTo(map);
+                    
+                    map.setView([lat, lng], 13);
+                    
+                    // 顯示位置資訊
+                    document.getElementById('locationInfo').innerHTML = 
+                        `<i class="fas fa-map-marker-alt text-blue-600"></i> ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+                    document.getElementById('locationInfo').classList.remove('hidden');
+                    
+                    // 載入附近設施
+                    await loadNearbyFacilities(lat, lng);
+                    hideStatus();
+                },
+                (error) => {
+                    showStatus('定位失敗: ' + error.message, 'error');
+                    console.error('定位錯誤:', error);
+                }
+            );
+        }
+
+        // 載入附近設施
+        async function loadNearbyFacilities(lat, lng, radius = 5) {
+            if (!apiBaseUrl) return;
+            
+            try {
+                const response = await fetch(`${apiBaseUrl}?path=nearby&lat=${lat}&lng=${lng}&radius=${radius}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    updateFacilitiesTable(data.data);
+                    updateMap(data.data);
+                    updateApiResponse(data);
+                } else {
+                    throw new Error(data.error || '載入附近設施失敗');
+                }
+            } catch (error) {
+                console.error('載入附近設施錯誤:', error);
+            }
+        }
+
+        // 更新統計顯示
+        function updateStatsDisplay(statsData) {
+            const container = document.getElementById('statsContainer');
+            
+            let html = `
+                <div class="text-center mb-4">
+                    <div class="text-3xl font-bold text-blue-600">${statsData.totalFacilities}</div>
+                    <div class="text-sm text-gray-600">總設施數</div>
+                </div>
+                <div class="space-y-3">
+            `;
+            
+            Object.entries(statsData.byType).forEach(([type, data]) => {
+                const config = facilityTypes[type] || facilityTypes['未分類'];
+                html += `
+                    <div class="flex items-center justify-between p-3 rounded-lg border" style="border-left: 4px solid ${config.color};">
+                        <div class="flex items-center">
+                            <i class="${config.icon}" style="color: ${config.color};"></i>
+                            <span class="ml-2 font-medium">${type}</span>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-lg font-semibold">${data.count}</div>
+                            <div class="text-xs text-gray-500">地點</div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        // 更新類型篩選器
+        function updateTypeFilter(types) {
+            const select = document.getElementById('typeFilter');
+            const currentValue = select.value;
+            
+            select.innerHTML = '<option value="">所有類型</option>';
+            
+            types.forEach(type => {
+                const option = document.createElement('option');
+                option.value = type;
+                option.textContent = type;
+                select.appendChild(option);
+            });
+            
+            select.value = currentValue;
+        }
+
+        // 更新設施表格
+        function updateFacilitiesTable(facilities) {
+            const tbody = document.getElementById('facilitiesTable');
+            
+            if (facilities.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="px-6 py-4 text-center text-gray-500">
+                            <i class="fas fa-inbox text-2xl mb-2"></i>
+                            <p>沒有找到設施</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tbody.innerHTML = facilities.map(facility => {
+                const config = facilityTypes[facility.type] || facilityTypes['未分類'];
+                const distanceText = facility.distance ? 
+                    `<span class="text-xs text-gray-500">(${facility.distance.toFixed(2)}km)</span>` : '';
+                
+                return `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <i class="${config.icon} mr-2" style="color: ${config.color};"></i>
+                                <span class="font-medium">${facility.name}</span>
+                                ${distanceText}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full" 
+                                  style="background-color: ${config.color}20; color: ${config.color};">
+                                ${facility.type}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(facility.address)}" 
+                               target="_blank" 
+                               class="text-blue-600 hover:text-blue-800 underline">
+                                ${facility.address}
+                            </a>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-600">
+                            ${facility.note || '-'}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <button onclick="centerMapOn(${facility.lat}, ${facility.lng})" 
+                                    class="text-blue-600 hover:text-blue-900">
+                                <i class="fas fa-map-marker-alt"></i> 定位
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // 更新地圖
+        function updateMap(facilities) {
+            markersLayer.clearLayers();
+            
+            if (facilities.length === 0) return;
+            
+            const bounds = [];
+            
+            facilities.forEach(facility => {
+                const config = facilityTypes[facility.type] || facilityTypes['未分類'];
+                
+                const marker = L.marker([facility.lat, facility.lng], {
+                    icon: L.divIcon({
+                        className: 'custom-marker',
+                        html: `<div style="background-color: ${config.color}; width: 16px; height: 16px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
+                        iconSize: [20, 20],
+                        iconAnchor: [10, 10]
+                    })
+                }).bindPopup(`
+                    <div class="p-2">
+                        <h3 class="font-semibold text-lg">${facility.name}</h3>
+                        <p class="text-sm text-gray-600 mb-2">
+                            <i class="${config.icon}" style="color: ${config.color};"></i>
+                            ${facility.type}
+                        </p>
+                        <p class="text-sm mb-2">
+                            <i class="fas fa-map-marker-alt text-gray-500"></i>
+                            <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(facility.address)}" 
+                               target="_blank" class="text-blue-600 hover:underline">
+                                ${facility.address}
+                            </a>
+                        </p>
+                        ${facility.note ? `<p class="text-sm text-gray-600">
+                            <i class="fas fa-sticky-note text-gray-500"></i>
+                            ${facility.note}
+                        </p>` : ''}
+                        ${facility.distance ? `<p class="text-xs text-gray-500 mt-2">
+                            <i class="fas fa-ruler text-gray-500"></i>
+                            距離: ${facility.distance.toFixed(2)} 公里
+                        </p>` : ''}
+                    </div>
+                `);
+                
+                markersLayer.addLayer(marker);
+                bounds.push([facility.lat, facility.lng]);
+            });
+            
+            if (bounds.length > 0) {
+                map.fitBounds(bounds, { padding: [20, 20] });
+            }
+        }
+
+        // 地圖定位到指定座標
+        function centerMapOn(lat, lng) {
+            map.setView([lat, lng], 15);
+        }
+
+        // 更新 API 回應顯示
+        function updateApiResponse(data) {
+            document.getElementById('apiResponse').textContent = JSON.stringify(data, null, 2);
+        }
+
+        // 顯示狀態
+        function showStatus(message, type = 'info') {
+            const statusBar = document.getElementById('statusBar');
+            const statusMessage = document.getElementById('statusMessage');
+            
+            statusMessage.textContent = message;
+            statusBar.className = `border-l-4 p-4 ${
+                type === 'success' ? 'bg-green-100 border-green-500 text-green-700' :
+                type === 'error' ? 'bg-red-100 border-red-500 text-red-700' :
+                'bg-yellow-100 border-yellow-500 text-yellow-700'
+            }`;
+            statusBar.classList.remove('hidden');
+        }
+
+        // 隱藏狀態
+        function hideStatus() {
+            document.getElementById('statusBar').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
